@@ -36,11 +36,11 @@ jobs:
 
       - name: Build installer (Windows)
         if: matrix.platform == 'win'
-        run: npx electron-builder --win
+        run: npx electron-builder --win --publish never
 
       - name: Build installer (macOS)
         if: matrix.platform == 'mac'
-        run: npx electron-builder --mac
+        run: npx electron-builder --mac --publish never
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -49,8 +49,9 @@ jobs:
           path: |
             release/*.exe
             release/*.dmg
-            release/*.yml
-          if-no-files-found: error
+            release/*-mac.yml
+            release/latest*.yml
+          if-no-files-found: warn
 
   release:
     needs: build
