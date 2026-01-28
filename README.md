@@ -9,7 +9,7 @@ A modern Markdown viewer and editor for Windows and macOS.
 | Platform | Download |
 |----------|----------|
 | Windows | [MD Viewer Setup 1.0.0.exe](https://github.com/tjanssens/md-viewer/releases/download/v1.0.0/MD.Viewer.Setup.1.0.0.exe) |
-| macOS | [MD Viewer-1.0.0.dmg](https://github.com/tjanssens/md-viewer/releases/download/v1.0.0/MD.Viewer-1.0.0.dmg) |
+| macOS | [MD Viewer-1.0.0-arm64.dmg](https://github.com/tjanssens/md-viewer/releases/download/v1.0.0/MD.Viewer-1.0.0-arm64.dmg) |
 
 ## Features
 
