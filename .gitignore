@@ -31,8 +31,11 @@ yarn-error.log*
 
 # Electron builder
 *.blockmap
-*.exe
 *.dmg
 *.AppImage
 *.deb
 *.rpm
+
+# Keep downloads folder for releases
+!downloads/
+!downloads/*.exe

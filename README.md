@@ -2,6 +2,14 @@
 
 A modern Markdown viewer and editor for Windows and macOS.
 
+## Quick Start (Windows)
+
+Just want to use the app? Download and run the installer:
+
+**[Download MD Viewer Setup 1.0.0.exe](downloads/MD%20Viewer%20Setup%201.0.0.exe)**
+
+Or download directly from the `downloads/` folder in this repository.
+
 ## Features
 
 - **View Mode**: Beautiful rendering of Markdown files with syntax highlighting
