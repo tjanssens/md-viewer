@@ -1,0 +1,93 @@
+{
+  "name": "md-viewer",
+  "version": "1.0.0",
+  "description": "Markdown Viewer and Editor for Windows and macOS",
+  "main": "dist/main/main.js",
+  "author": "MD Viewer Team",
+  "license": "MIT",
+  "scripts": {
+    "ng": "ng",
+    "start": "npm run build:electron && concurrently \"npm run watch:angular\" \"npm run start:electron\"",
+    "build:angular": "ng build --configuration production",
+    "watch:angular": "ng build --watch --configuration development",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "watch:electron": "tsc -p tsconfig.electron.json --watch",
+    "start:electron": "electron .",
+    "build": "npm run build:angular && npm run build:electron",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:all": "npm run build && electron-builder --win --mac"
+  },
+  "dependencies": {
+    "@angular/animations": "^17.3.0",
+    "@angular/common": "^17.3.0",
+    "@angular/compiler": "^17.3.0",
+    "@angular/core": "^17.3.0",
+    "@angular/forms": "^17.3.0",
+    "@angular/platform-browser": "^17.3.0",
+    "@angular/platform-browser-dynamic": "^17.3.0",
+    "@angular/router": "^17.3.0",
+    "marked": "^12.0.0",
+    "highlight.js": "^11.9.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.6.0",
+    "zone.js": "~0.14.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^17.3.0",
+    "@angular/cli": "^17.3.0",
+    "@angular/compiler-cli": "^17.3.0",
+    "@types/node": "^20.11.0",
+    "concurrently": "^8.2.0",
+    "electron": "^28.2.0",
+    "electron-builder": "^24.13.0",
+    "typescript": "~5.3.0"
+  },
+  "build": {
+    "appId": "com.mdviewer.app",
+    "productName": "MD Viewer",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "fileAssociations": [
+      {
+        "ext": "md",
+        "name": "Markdown Document",
+        "description": "Markdown text file",
+        "role": "Editor",
+        "mimeType": "text/markdown"
+      },
+      {
+        "ext": "markdown",
+        "name": "Markdown Document",
+        "description": "Markdown text file",
+        "role": "Editor",
+        "mimeType": "text/markdown"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.developer-tools"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
