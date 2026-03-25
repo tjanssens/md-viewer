@@ -47,6 +47,14 @@ export function createMenu(mainWindow: BrowserWindow): Menu {
           }
         },
         { type: 'separator' },
+        {
+          label: 'Print...',
+          accelerator: 'CmdOrCtrl+P',
+          click: () => {
+            mainWindow.webContents.send('menu-print');
+          }
+        },
+        { type: 'separator' },
         isMac ? { role: 'close' as const } : { role: 'quit' as const }
       ]
     },

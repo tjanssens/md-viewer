@@ -23,6 +23,10 @@ import { SettingsService, AppSettings } from '../../services/settings.service';
           <span class="icon">📄</span>
           Save As
         </button>
+        <button class="btn" (click)="onPrint()" [disabled]="!hasContent" title="Print (Ctrl+P)">
+          <span class="icon">🖨️</span>
+          Print
+        </button>
         <div class="separator"></div>
         <button
           class="btn"
@@ -159,6 +163,7 @@ export class ToolbarComponent implements OnInit {
   @Output() save = new EventEmitter<void>();
   @Output() saveAs = new EventEmitter<void>();
   @Output() open = new EventEmitter<void>();
+  @Output() print = new EventEmitter<void>();
 
   fonts: string[] = [];
   fontSizes = [12, 14, 16, 18, 20, 22, 24, 28, 32];
@@ -196,5 +201,9 @@ export class ToolbarComponent implements OnInit {
 
   onSaveAs(): void {
     this.saveAs.emit();
+  }
+
+  onPrint(): void {
+    this.print.emit();
   }
 }

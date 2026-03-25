@@ -10,6 +10,7 @@ export interface ElectronAPI {
   onMenuSaveAs: (callback: () => void) => void;
   onMenuOpen: (callback: () => void) => void;
   onMenuToggleEdit: (callback: () => void) => void;
+  onMenuPrint: (callback: () => void) => void;
   removeAllListeners: (channel: string) => void;
 }
 

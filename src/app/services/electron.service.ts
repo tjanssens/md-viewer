@@ -15,12 +15,14 @@ export class ElectronService {
   private menuSaveAs = new Subject<void>();
   private menuOpen = new Subject<void>();
   private menuToggleEdit = new Subject<void>();
+  private menuPrint = new Subject<void>();
 
   fileOpened$ = this.fileOpened.asObservable();
   menuSave$ = this.menuSave.asObservable();
   menuSaveAs$ = this.menuSaveAs.asObservable();
   menuOpen$ = this.menuOpen.asObservable();
   menuToggleEdit$ = this.menuToggleEdit.asObservable();
+  menuPrint$ = this.menuPrint.asObservable();
 
   constructor(private ngZone: NgZone) {
     this.initListeners();
@@ -46,6 +48,10 @@ export class ElectronService {
 
       window.electronAPI.onMenuToggleEdit(() => {
         this.ngZone.run(() => this.menuToggleEdit.next());
+      });
+
+      window.electronAPI.onMenuPrint(() => {
+        this.ngZone.run(() => this.menuPrint.next());
       });
     }
   }

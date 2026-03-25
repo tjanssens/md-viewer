@@ -32,6 +32,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('menu-toggle-edit', () => callback());
   },
 
+  onMenuPrint: (callback: () => void) => {
+    ipcRenderer.on('menu-print', () => callback());
+  },
+
   // Remove listeners
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel);
@@ -52,6 +56,7 @@ declare global {
       onMenuSaveAs: (callback: () => void) => void;
       onMenuOpen: (callback: () => void) => void;
       onMenuToggleEdit: (callback: () => void) => void;
+      onMenuPrint: (callback: () => void) => void;
       removeAllListeners: (channel: string) => void;
     };
   }

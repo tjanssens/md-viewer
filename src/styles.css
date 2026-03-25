@@ -38,3 +38,63 @@ body {
 ::selection {
   background: #b3d4fc;
 }
+
+/* Print styles */
+@media print {
+  /* Hide toolbar and UI elements */
+  app-toolbar,
+  .welcome-overlay,
+  app-markdown-editor,
+  .split-divider {
+    display: none !important;
+  }
+
+  /* Reset layout for print */
+  html, body {
+    height: auto;
+    overflow: visible;
+  }
+
+  .app-container {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .main-content {
+    overflow: visible !important;
+  }
+
+  .view-mode, .edit-mode {
+    height: auto !important;
+  }
+
+  /* Make viewer scrollable content fully visible */
+  app-markdown-viewer,
+  .markdown-viewer {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Clean print appearance */
+  .markdown-viewer {
+    padding: 0 !important;
+  }
+
+  /* Ensure code blocks don't overflow */
+  pre {
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+  }
+
+  /* Ensure links show their URL */
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #666;
+  }
+
+  /* Don't show URL for anchor links */
+  a[href^="#"]::after {
+    content: none;
+  }
+}

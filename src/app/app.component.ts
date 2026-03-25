@@ -26,7 +26,8 @@ import { SettingsService } from './services/settings.service';
         (toggleEdit)="toggleEditMode()"
         (save)="saveFile()"
         (saveAs)="saveFileAs()"
-        (open)="openFile()">
+        (open)="openFile()"
+        (print)="printFile()">
       </app-toolbar>
 
       <div class="main-content">
@@ -200,6 +201,10 @@ export class AppComponent implements OnInit, OnDestroy {
     this.subscriptions.push(
       this.electronService.menuToggleEdit$.subscribe(() => this.toggleEditMode())
     );
+
+    this.subscriptions.push(
+      this.electronService.menuPrint$.subscribe(() => this.printFile())
+    );
   }
 
   ngOnDestroy(): void {
@@ -251,5 +256,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
   onEditorScroll(percent: number): void {
     this.editorScrollPercent = percent;
+  }
+
+  printFile(): void {
+    if (!this.content) return;
+    window.print();
   }
 }
