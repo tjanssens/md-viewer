@@ -1,0 +1,313 @@
+import { Component, EventEmitter, Output } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FeedbackService, FeedbackItem } from '../../services/feedback.service';
+import { Observable } from 'rxjs';
+
+@Component({
+  selector: 'app-feedback-sidebar',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <aside class="sidebar">
+      <header class="sidebar-header">
+        <h3>Feedback ({{ (items$ | async)?.length || 0 }})</h3>
+        <button class="close-btn" (click)="close.emit()" title="Sluiten">✕</button>
+      </header>
+
+      <div class="actions">
+        <button class="copy-btn" (click)="onCopy()" [disabled]="!hasOpen((items$ | async) || [])">
+          📋 Kopieer alle feedback
+        </button>
+        <div class="bulk-actions">
+          <button (click)="onRemoveProcessed()" [disabled]="!hasStatus((items$ | async) || [], 'processed')">
+            Verwijder verwerkte
+          </button>
+          <button (click)="onRemoveOrphaned()" [disabled]="!hasStatus((items$ | async) || [], 'orphaned')">
+            Verwijder verweesde
+          </button>
+        </div>
+      </div>
+
+      <div class="items">
+        <div
+          *ngFor="let item of items$ | async"
+          class="item"
+          [class.processed]="item.status === 'processed'"
+          [class.orphaned]="item.status === 'orphaned'"
+          (click)="onItemClick(item)">
+
+          <div class="item-header">
+            <span class="item-path" *ngIf="item.headingPath.length > 0">
+              {{ item.headingPath.join(' › ') }}
+            </span>
+            <span class="item-actions">
+              <button
+                class="status-btn"
+                *ngIf="item.status !== 'processed'"
+                (click)="$event.stopPropagation(); markProcessed(item)"
+                title="Markeer als verwerkt">✓</button>
+              <button
+                class="status-btn"
+                *ngIf="item.status === 'processed'"
+                (click)="$event.stopPropagation(); markOpen(item)"
+                title="Markeer als open">↺</button>
+              <button
+                class="delete-btn"
+                (click)="$event.stopPropagation(); remove(item)"
+                title="Verwijder">🗑️</button>
+            </span>
+          </div>
+
+          <div class="item-snippet">"{{ item.selectedText | slice:0:60 }}{{ item.selectedText.length > 60 ? '…' : '' }}"</div>
+          <div class="item-feedback">{{ item.feedback }}</div>
+
+          <div class="item-badges">
+            <span class="badge shifted" *ngIf="item.shifted && item.status !== 'orphaned'">📍 verschoven</span>
+            <span class="badge orphaned" *ngIf="item.status === 'orphaned'">⚠️ niet gevonden</span>
+            <span class="badge processed" *ngIf="item.status === 'processed'">✓ verwerkt</span>
+          </div>
+        </div>
+
+        <div class="empty" *ngIf="((items$ | async) || []).length === 0">
+          Geen feedback. Selecteer tekst in de viewer en klik "💬 Feedback toevoegen".
+        </div>
+      </div>
+    </aside>
+  `,
+  styles: [`
+    .sidebar {
+      width: 360px;
+      height: 100%;
+      background: var(--color-bg-elevated);
+      border-left: 1px solid var(--color-border);
+      display: flex;
+      flex-direction: column;
+      color: var(--color-text);
+    }
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .sidebar-header h3 {
+      margin: 0;
+      font-size: 16px;
+      color: var(--color-heading);
+    }
+    .close-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--color-text);
+    }
+    .actions {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .copy-btn {
+      padding: 8px 12px;
+      background: var(--color-primary);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .copy-btn:hover:not(:disabled) {
+      background: var(--color-primary-hover);
+    }
+    .copy-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .bulk-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .bulk-actions button {
+      flex: 1;
+      padding: 6px 8px;
+      background: var(--color-bg);
+      color: var(--color-text);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .bulk-actions button:hover:not(:disabled) {
+      background: var(--color-bg-elevated);
+    }
+    .bulk-actions button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .items {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    .item {
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .item:hover {
+      border-color: var(--color-primary);
+    }
+    .item.processed {
+      opacity: 0.6;
+    }
+    .item.orphaned {
+      border-color: var(--color-toast-border);
+    }
+    .item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .item-path {
+      font-size: 11px;
+      color: var(--color-text-muted);
+    }
+    .item-actions {
+      display: flex;
+      gap: 4px;
+    }
+    .item-actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      padding: 2px 4px;
+      color: var(--color-text);
+    }
+    .item-actions button:hover {
+      background: var(--color-bg-elevated);
+      border-radius: 3px;
+    }
+    .item-snippet {
+      font-size: 12px;
+      font-style: italic;
+      color: var(--color-text-muted);
+      margin-bottom: 6px;
+    }
+    .item-feedback {
+      font-size: 14px;
+      color: var(--color-text);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .item-badges {
+      margin-top: 8px;
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: var(--color-bg-elevated);
+      color: var(--color-text-muted);
+    }
+    .badge.orphaned {
+      background: var(--color-toast-bg);
+      color: var(--color-toast-text);
+    }
+    .badge.shifted {
+      background: var(--color-bg-elevated);
+    }
+    .badge.processed {
+      background: var(--color-bg-elevated);
+    }
+    .empty {
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--color-text-muted);
+      font-size: 13px;
+    }
+  `]
+})
+export class FeedbackSidebarComponent {
+  @Output() close = new EventEmitter<void>();
+  @Output() scrollTo = new EventEmitter<string>();
+
+  items$: Observable<FeedbackItem[]>;
+
+  constructor(private feedbackService: FeedbackService) {
+    this.items$ = this.feedbackService.items$;
+  }
+
+  hasOpen(items: FeedbackItem[]): boolean {
+    return items.some(i => i.status === 'open');
+  }
+
+  hasStatus(items: FeedbackItem[], status: string): boolean {
+    return items.some(i => i.status === status);
+  }
+
+  onItemClick(item: FeedbackItem): void {
+    if (item.status === 'orphaned') return;
+    this.scrollTo.emit(item.id);
+  }
+
+  markProcessed(item: FeedbackItem): void {
+    this.feedbackService.update(item.id, { status: 'processed' });
+  }
+
+  markOpen(item: FeedbackItem): void {
+    this.feedbackService.update(item.id, { status: 'open' });
+  }
+
+  remove(item: FeedbackItem): void {
+    this.feedbackService.remove(item.id);
+  }
+
+  onRemoveProcessed(): void {
+    this.feedbackService.removeByStatus('processed');
+  }
+
+  onRemoveOrphaned(): void {
+    this.feedbackService.removeByStatus('orphaned');
+  }
+
+  onCopy(): void {
+    const items = this.feedbackService.getItems().filter(i => i.status === 'open');
+    if (items.length === 0) return;
+
+    const filename = this.getCurrentFilename();
+    const lines: string[] = [`# Feedback op \`${filename}\`\n`];
+    items.forEach((item, idx) => {
+      lines.push(`## Feedback ${idx + 1}`);
+      if (item.headingPath.length > 0) {
+        lines.push(`**Locatie:** ${item.headingPath.join(' › ')}`);
+      }
+      lines.push(`**Geselecteerde tekst:**`);
+      lines.push(`> ${item.selectedText.replace(/\n/g, '\n> ')}`);
+      lines.push('');
+      lines.push(`**Feedback:**`);
+      lines.push(item.feedback);
+      lines.push('');
+      lines.push('---');
+      lines.push('');
+    });
+    navigator.clipboard.writeText(lines.join('\n')).catch(err =>
+      console.error('Clipboard write failed:', err)
+    );
+  }
+
+  private getCurrentFilename(): string {
+    return (window as any).__currentFilename || 'document.md';
+  }
+}
