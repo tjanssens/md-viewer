@@ -324,17 +324,21 @@ export class MarkdownViewerComponent implements OnChanges, AfterViewChecked {
     }
 
     const rootText = root.textContent || '';
-    const selectionStart = this.computeTextOffset(root, range.startContainer, range.startOffset);
-    const selectionEnd = this.computeTextOffset(root, range.endContainer, range.endOffset);
-    const selectedText = rootText.slice(selectionStart, selectionEnd);
-    if (selectedText.trim().length === 0) {
+    let selStart = this.computeTextOffset(root, range.startContainer, range.startOffset);
+    let selEnd = this.computeTextOffset(root, range.endContainer, range.endOffset);
+
+    while (selStart < selEnd && /\s/.test(rootText[selStart])) selStart++;
+    while (selEnd > selStart && /\s/.test(rootText[selEnd - 1])) selEnd--;
+
+    const selectedText = rootText.slice(selStart, selEnd);
+    if (selectedText.length === 0) {
       this.showSelectionButton = false;
       this.pendingSelection = null;
       return;
     }
 
-    const contextBefore = rootText.slice(Math.max(0, selectionStart - 50), selectionStart);
-    const contextAfter = rootText.slice(selectionEnd, selectionEnd + 50);
+    const contextBefore = rootText.slice(Math.max(0, selStart - 50), selStart);
+    const contextAfter = rootText.slice(selEnd, selEnd + 50);
     const headingPath = getHeadingPath(range.startContainer, root);
 
     this.pendingSelection = { selectedText, contextBefore, contextAfter, headingPath };
