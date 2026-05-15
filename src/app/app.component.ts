@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { ToolbarComponent } from './components/toolbar/toolbar.component';
@@ -7,6 +7,14 @@ import { MarkdownEditorComponent } from './components/markdown-editor/markdown-e
 import { SplitPaneComponent } from './components/split-pane/split-pane.component';
 import { ElectronService } from './services/electron.service';
 import { SettingsService } from './services/settings.service';
+import { ThemeService } from './services/theme.service';
+import { FeedbackPopoverComponent } from './components/feedback-popover/feedback-popover.component';
+import { FeedbackSidebarComponent } from './components/feedback-sidebar/feedback-sidebar.component';
+import { FeedbackService } from './services/feedback.service';
+import { ReloadToastComponent } from './components/reload-toast/reload-toast.component';
+import { ReloadConflictModalComponent } from './components/reload-conflict-modal/reload-conflict-modal.component';
+import { DocumentOutlineComponent } from './components/document-outline/document-outline.component';
+import { CurrentFileService } from './services/current-file.service';
 
 @Component({
   selector: 'app-root',
@@ -16,27 +24,50 @@ import { SettingsService } from './services/settings.service';
     ToolbarComponent,
     MarkdownViewerComponent,
     MarkdownEditorComponent,
-    SplitPaneComponent
+    SplitPaneComponent,
+    FeedbackPopoverComponent,
+    FeedbackSidebarComponent,
+    ReloadToastComponent,
+    ReloadConflictModalComponent,
+    DocumentOutlineComponent
   ],
   template: `
     <div class="app-container">
       <app-toolbar
         [isEditMode]="isEditMode"
         [hasContent]="content.length > 0"
+        [feedbackSidebarOpen]="feedbackSidebarOpen"
+        [outlineOpen]="outlineOpen"
         (toggleEdit)="toggleEditMode()"
         (save)="saveFile()"
         (saveAs)="saveFileAs()"
         (open)="openFile()"
-        (print)="printFile()">
+        (print)="printFile()"
+        (toggleFeedbackSidebar)="toggleFeedbackSidebar()"
+        (toggleOutline)="toggleOutline()">
       </app-toolbar>
 
       <div class="main-content">
         <!-- View Mode -->
         <div *ngIf="!isEditMode" class="view-mode">
+          <app-document-outline
+            *ngIf="outlineOpen && viewerComponent"
+            [outline$]="viewerComponent.outline$"
+            (select)="onOutlineSelect($event)"
+            (close)="toggleOutline()">
+          </app-document-outline>
           <app-markdown-viewer
             [content]="content"
+            (requestFeedback)="onRequestFeedback($event)"
+            (selectFeedback)="onViewerSelectFeedback($event)"
             class="full-viewer">
           </app-markdown-viewer>
+          <app-feedback-sidebar
+            *ngIf="feedbackSidebarOpen"
+            [selectedId]="selectedFeedbackId"
+            (close)="toggleFeedbackSidebar()"
+            (scrollTo)="onFeedbackScrollTo($event)">
+          </app-feedback-sidebar>
         </div>
 
         <!-- Edit Mode with Split Pane -->
@@ -70,6 +101,27 @@ import { SettingsService } from './services/settings.service';
           <p class="hint">Or drag and drop a .md file here</p>
         </div>
       </div>
+
+      <app-feedback-popover
+        *ngIf="feedbackPopoverVisible"
+        [top]="feedbackPopoverTop"
+        [left]="feedbackPopoverLeft"
+        [snippet]="feedbackPopoverSnippet"
+        (save)="onFeedbackSave($event)"
+        (cancel)="onFeedbackCancel()">
+      </app-feedback-popover>
+
+      <app-reload-toast
+        *ngIf="reloadToastVisible"
+        (reload)="onReloadConfirm()"
+        (ignore)="onReloadIgnore()">
+      </app-reload-toast>
+
+      <app-reload-conflict-modal
+        *ngIf="reloadConflictVisible"
+        (loadFromDisk)="onConflictLoadFromDisk()"
+        (keepMine)="onConflictKeepMine()">
+      </app-reload-conflict-modal>
     </div>
   `,
   styles: [`
@@ -78,6 +130,8 @@ import { SettingsService } from './services/settings.service';
       flex-direction: column;
       height: 100vh;
       overflow: hidden;
+      background: var(--color-bg);
+      color: var(--color-text);
     }
 
     .main-content {
@@ -86,17 +140,23 @@ import { SettingsService } from './services/settings.service';
       position: relative;
     }
 
-    .view-mode, .edit-mode {
+    .view-mode {
+      height: 100%;
+      display: flex;
+    }
+    .edit-mode {
       height: 100%;
     }
-
+    .full-viewer {
+      flex: 1;
+    }
     .full-viewer, .preview-viewer {
       height: 100%;
     }
 
     .preview-viewer {
-      background: #ffffff;
-      border-left: 1px solid #e9ecef;
+      background: var(--color-bg);
+      border-left: 1px solid var(--color-border);
     }
 
     .welcome-overlay {
@@ -108,7 +168,7 @@ import { SettingsService } from './services/settings.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+      background: var(--color-bg-welcome);
     }
 
     .welcome-content {
@@ -119,13 +179,13 @@ import { SettingsService } from './services/settings.service';
     .welcome-content h1 {
       font-size: 48px;
       font-weight: 300;
-      color: #343a40;
+      color: var(--color-heading);
       margin: 0 0 16px;
     }
 
     .welcome-content p {
       font-size: 18px;
-      color: #6c757d;
+      color: var(--color-text-muted);
       margin: 0 0 32px;
     }
 
@@ -137,7 +197,7 @@ import { SettingsService } from './services/settings.service';
       font-size: 18px;
       font-weight: 500;
       color: #ffffff;
-      background: #0d6efd;
+      background: var(--color-primary);
       border: none;
       border-radius: 8px;
       cursor: pointer;
@@ -145,7 +205,7 @@ import { SettingsService } from './services/settings.service';
     }
 
     .welcome-btn:hover {
-      background: #0b5ed7;
+      background: var(--color-primary-hover);
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
     }
@@ -157,7 +217,7 @@ import { SettingsService } from './services/settings.service';
     .hint {
       margin-top: 24px !important;
       font-size: 14px !important;
-      color: #adb5bd !important;
+      color: var(--color-text-subtle) !important;
     }
   `]
 })
@@ -168,11 +228,32 @@ export class AppComponent implements OnInit, OnDestroy {
   currentFilePath: string | null = null;
   hasUnsavedChanges = false;
 
+  feedbackPopoverVisible = false;
+  feedbackPopoverTop = 0;
+  feedbackPopoverLeft = 0;
+  feedbackPopoverSnippet = '';
+  feedbackSidebarOpen = false;
+  selectedFeedbackId: string | null = null;
+  outlineOpen = false;
+  reloadToastVisible = false;
+  reloadConflictVisible = false;
+  private pendingExternalContent: string | null = null;
+  @ViewChild(MarkdownViewerComponent) viewerComponent?: MarkdownViewerComponent;
+  private pendingFeedback: {
+    selectedText: string;
+    contextBefore: string;
+    contextAfter: string;
+    headingPath: string[];
+  } | null = null;
+
   private subscriptions: Subscription[] = [];
 
   constructor(
     private electronService: ElectronService,
-    private settingsService: SettingsService
+    private settingsService: SettingsService,
+    private themeService: ThemeService,
+    private feedbackService: FeedbackService,
+    private currentFileService: CurrentFileService
   ) {}
 
   ngOnInit(): void {
@@ -181,6 +262,8 @@ export class AppComponent implements OnInit, OnDestroy {
       this.electronService.fileOpened$.subscribe(data => {
         this.content = data.content;
         this.currentFilePath = data.filePath;
+        this.feedbackService.setCurrentFile(this.currentFilePath);
+        this.currentFileService.setCurrentFile(this.currentFilePath);
         this.hasUnsavedChanges = false;
       })
     );
@@ -205,6 +288,17 @@ export class AppComponent implements OnInit, OnDestroy {
     this.subscriptions.push(
       this.electronService.menuPrint$.subscribe(() => this.printFile())
     );
+
+    this.subscriptions.push(
+      this.electronService.fileChangedExternally$.subscribe(data => {
+        this.pendingExternalContent = data.content;
+        if (this.hasUnsavedChanges && this.isEditMode) {
+          this.reloadConflictVisible = true;
+        } else {
+          this.reloadToastVisible = true;
+        }
+      })
+    );
   }
 
   ngOnDestroy(): void {
@@ -216,6 +310,8 @@ export class AppComponent implements OnInit, OnDestroy {
     if (result) {
       this.content = result.content;
       this.currentFilePath = result.filePath;
+      this.feedbackService.setCurrentFile(this.currentFilePath);
+      this.currentFileService.setCurrentFile(this.currentFilePath);
       this.hasUnsavedChanges = false;
     }
   }
@@ -242,6 +338,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (success) {
       this.hasUnsavedChanges = false;
       this.currentFilePath = await this.electronService.getCurrentFilePath();
+      this.feedbackService.setCurrentFile(this.currentFilePath);
     }
   }
 
@@ -261,5 +358,93 @@ export class AppComponent implements OnInit, OnDestroy {
   printFile(): void {
     if (!this.content) return;
     window.print();
+  }
+
+  onRequestFeedback(data: {
+    selectedText: string;
+    contextBefore: string;
+    contextAfter: string;
+    headingPath: string[];
+    rect: { top: number; left: number; bottom: number };
+  }): void {
+    this.pendingFeedback = {
+      selectedText: data.selectedText,
+      contextBefore: data.contextBefore,
+      contextAfter: data.contextAfter,
+      headingPath: data.headingPath
+    };
+    this.feedbackPopoverSnippet = data.selectedText.slice(0, 80);
+    this.feedbackPopoverTop = data.rect.bottom + 8;
+    this.feedbackPopoverLeft = Math.max(8, data.rect.left);
+    this.feedbackPopoverVisible = true;
+  }
+
+  onFeedbackSave(feedback: string): void {
+    if (!this.pendingFeedback) return;
+    this.feedbackService.add({
+      selectedText: this.pendingFeedback.selectedText,
+      contextBefore: this.pendingFeedback.contextBefore,
+      contextAfter: this.pendingFeedback.contextAfter,
+      headingPath: this.pendingFeedback.headingPath,
+      feedback
+    });
+    this.feedbackPopoverVisible = false;
+    this.pendingFeedback = null;
+  }
+
+  onFeedbackCancel(): void {
+    this.feedbackPopoverVisible = false;
+    this.pendingFeedback = null;
+  }
+
+  toggleFeedbackSidebar(): void {
+    this.feedbackSidebarOpen = !this.feedbackSidebarOpen;
+  }
+
+  onViewerSelectFeedback(id: string): void {
+    this.selectedFeedbackId = id;
+    if (!this.feedbackSidebarOpen) {
+      this.feedbackSidebarOpen = true;
+    }
+  }
+
+  toggleOutline(): void {
+    this.outlineOpen = !this.outlineOpen;
+  }
+
+  onOutlineSelect(id: string): void {
+    this.viewerComponent?.scrollToHeading(id);
+  }
+
+  onFeedbackScrollTo(id: string): void {
+    this.viewerComponent?.scrollToFeedback(id);
+  }
+
+  onReloadConfirm(): void {
+    if (this.pendingExternalContent !== null) {
+      this.content = this.pendingExternalContent;
+      this.pendingExternalContent = null;
+      this.hasUnsavedChanges = false;
+    }
+    this.reloadToastVisible = false;
+  }
+
+  onReloadIgnore(): void {
+    this.pendingExternalContent = null;
+    this.reloadToastVisible = false;
+  }
+
+  onConflictLoadFromDisk(): void {
+    if (this.pendingExternalContent !== null) {
+      this.content = this.pendingExternalContent;
+      this.pendingExternalContent = null;
+      this.hasUnsavedChanges = false;
+    }
+    this.reloadConflictVisible = false;
+  }
+
+  onConflictKeepMine(): void {
+    this.pendingExternalContent = null;
+    this.reloadConflictVisible = false;
   }
 }

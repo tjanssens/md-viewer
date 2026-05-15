@@ -12,6 +12,7 @@
     "src/app/**/*.ts"
   ],
   "exclude": [
-    "src/electron/**/*"
+    "src/electron/**/*",
+    "src/**/*.spec.ts"
   ]
 }

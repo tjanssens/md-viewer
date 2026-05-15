@@ -1,4 +1,5 @@
-import { Component, Input, Output, EventEmitter, ElementRef, ViewChild, OnChanges, SimpleChanges, AfterViewInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ElementRef, ViewChild, OnChanges, SimpleChanges, AfterViewInit, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SettingsService } from '../../services/settings.service';
@@ -33,7 +34,7 @@ import { SettingsService } from '../../services/settings.service';
       display: flex;
       flex-direction: column;
       height: 100%;
-      background: #1e1e1e;
+      background: var(--color-bg);
     }
 
     .editor-header {
@@ -41,22 +42,22 @@ import { SettingsService } from '../../services/settings.service';
       justify-content: space-between;
       align-items: center;
       padding: 8px 16px;
-      background: #252526;
-      border-bottom: 1px solid #3c3c3c;
+      background: var(--color-bg-elevated);
+      border-bottom: 1px solid var(--color-border);
       flex-shrink: 0;
     }
 
     .editor-title {
       font-size: 12px;
       font-weight: 500;
-      color: #cccccc;
+      color: var(--color-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     .line-info {
       font-size: 12px;
-      color: #858585;
+      color: var(--color-text-muted);
     }
 
     .editor-textarea {
@@ -66,14 +67,14 @@ import { SettingsService } from '../../services/settings.service';
       border: none;
       outline: none;
       resize: none;
-      background: #1e1e1e;
-      color: #d4d4d4;
+      background: var(--color-bg);
+      color: var(--color-text);
       line-height: 1.6;
       tab-size: 2;
     }
 
     .editor-textarea::placeholder {
-      color: #5a5a5a;
+      color: var(--color-text-subtle);
     }
 
     .editor-textarea::-webkit-scrollbar {
@@ -81,17 +82,17 @@ import { SettingsService } from '../../services/settings.service';
     }
 
     .editor-textarea::-webkit-scrollbar-track {
-      background: #1e1e1e;
+      background: var(--color-bg);
     }
 
     .editor-textarea::-webkit-scrollbar-thumb {
-      background: #424242;
-      border: 3px solid #1e1e1e;
+      background: var(--color-border);
+      border: 3px solid var(--color-bg);
       border-radius: 7px;
     }
 
     .editor-textarea::-webkit-scrollbar-thumb:hover {
-      background: #4f4f4f;
+      background: var(--color-border-strong);
     }
   `]
 })
@@ -106,11 +107,15 @@ export class MarkdownEditorComponent implements OnChanges, AfterViewInit {
   editorFontFamily = 'Consolas';
   editorFontSize = 14;
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(private settingsService: SettingsService) {
-    this.settingsService.settings$.subscribe(settings => {
-      this.editorFontFamily = settings.editorFontFamily;
-      this.editorFontSize = settings.editorFontSize;
-    });
+    this.settingsService.settings$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(settings => {
+        this.editorFontFamily = settings.editorFontFamily;
+        this.editorFontSize = settings.editorFontSize;
+      });
   }
 
   ngAfterViewInit(): void {

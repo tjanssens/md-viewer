@@ -2,9 +2,14 @@ import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { createMenu } from './menu';
+import { shouldReportChange } from './file-watcher-logic';
 
 let mainWindow: BrowserWindow | null = null;
 let currentFilePath: string | null = null;
+let currentWatcher: fs.FSWatcher | null = null;
+let lastKnownMtime: number = 0;
+let ignoreNextChangeUntil: number = 0;
+let watcherDebounceTimer: NodeJS.Timeout | null = null;
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -37,6 +42,7 @@ function createWindow(): void {
   });
 
   mainWindow.on('closed', () => {
+    stopWatcher();
     mainWindow = null;
   });
 
@@ -45,12 +51,56 @@ function createWindow(): void {
   Menu.setApplicationMenu(menu);
 }
 
+function stopWatcher(): void {
+  if (currentWatcher) {
+    currentWatcher.close();
+    currentWatcher = null;
+  }
+  if (watcherDebounceTimer) {
+    clearTimeout(watcherDebounceTimer);
+    watcherDebounceTimer = null;
+  }
+}
+
+function startWatcher(filePath: string): void {
+  stopWatcher();
+  try {
+    lastKnownMtime = fs.statSync(filePath).mtimeMs;
+    currentWatcher = fs.watch(filePath, () => {
+      if (watcherDebounceTimer) clearTimeout(watcherDebounceTimer);
+      watcherDebounceTimer = setTimeout(() => handleExternalChange(filePath), 200);
+    });
+  } catch (error) {
+    console.error('Error starting watcher:', error);
+  }
+}
+
+function handleExternalChange(filePath: string): void {
+  try {
+    if (!fs.existsSync(filePath)) return;
+    const stat = fs.statSync(filePath);
+    const report = shouldReportChange({
+      now: Date.now(),
+      ignoreUntil: ignoreNextChangeUntil,
+      currentMtime: stat.mtimeMs,
+      lastKnownMtime
+    });
+    if (!report) return;
+    lastKnownMtime = stat.mtimeMs;
+    const content = fs.readFileSync(filePath, 'utf-8');
+    mainWindow?.webContents.send('file-changed-externally', { filePath, content });
+  } catch (error) {
+    console.error('Error handling external change:', error);
+  }
+}
+
 function openFile(filePath: string): void {
   try {
     const content = fs.readFileSync(filePath, 'utf-8');
     currentFilePath = filePath;
     mainWindow?.webContents.send('file-opened', { filePath, content });
     mainWindow?.setTitle(`MD Viewer - ${path.basename(filePath)}`);
+    startWatcher(filePath);
   } catch (error) {
     console.error('Error opening file:', error);
   }
@@ -58,9 +108,12 @@ function openFile(filePath: string): void {
 
 function saveFile(filePath: string, content: string): boolean {
   try {
+    ignoreNextChangeUntil = Date.now() + 500;
     fs.writeFileSync(filePath, content, 'utf-8');
     currentFilePath = filePath;
+    lastKnownMtime = fs.statSync(filePath).mtimeMs;
     mainWindow?.setTitle(`MD Viewer - ${path.basename(filePath)}`);
+    startWatcher(filePath);
     return true;
   } catch (error) {
     console.error('Error saving file:', error);
@@ -83,6 +136,7 @@ ipcMain.handle('open-file-dialog', async () => {
     const content = fs.readFileSync(filePath, 'utf-8');
     currentFilePath = filePath;
     mainWindow?.setTitle(`MD Viewer - ${path.basename(filePath)}`);
+    startWatcher(filePath);
     return { filePath, content };
   }
   return null;

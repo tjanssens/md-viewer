@@ -16,6 +16,10 @@ A modern Markdown viewer and editor for Windows and macOS.
 - **View Mode**: Beautiful rendering of Markdown files with syntax highlighting
 - **Edit Mode**: Split-pane editor with live preview and synchronized scrolling
 - **Font Selection**: Choose your preferred font and size for reading
+- **Dark Mode**: Auto (follows system) / Light / Dark via 🌓 in the toolbar — the entire UI including syntax highlighting follows the theme
+- **Outline panel** (📑): Toggleable left panel listing every H1–H6 heading from the document, indented by level. Click a heading to scroll the viewer to it. A 💬 badge next to a heading shows how many feedback items live somewhere in that section
+- **Feedback annotations**: Select text in view mode → "💬 Add feedback" → write your note. Open the sidebar (💬 in toolbar) for the list. Click an item to scroll to its position in the document; click a yellow highlight in the document to jump to the matching sidebar item. The ✏️ button edits an item inline. **Copy all feedback** puts a Claude-friendly markdown block on the clipboard with the heading path as locator. Items survive small document edits via exact / fuzzy anchor matching; items whose text has disappeared get a *not found* badge. Mark items as processed (✓) and bulk-remove processed or orphaned items
+- **Auto-reload on external change**: When the open file is modified on disk, a toast appears with **Reload / Dismiss**. In edit mode with unsaved changes you get a conflict modal that lets you choose between **Load file from disk** and **Keep my version**
 - **File Association**: Double-click .md files to open them directly
 - **Native Menus**: Full keyboard shortcuts support (Ctrl/Cmd+O, S, E)
 
@@ -37,6 +41,9 @@ npm start
 
 # Build for production
 npm run build
+
+# Run unit tests
+npm test
 ```
 
 ### Building Installers

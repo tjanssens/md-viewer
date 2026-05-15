@@ -11,6 +11,8 @@ export interface FileData {
 })
 export class ElectronService {
   private fileOpened = new Subject<FileData>();
+  private fileChangedExternally = new Subject<{ filePath: string; content: string }>();
+  fileChangedExternally$ = this.fileChangedExternally.asObservable();
   private menuSave = new Subject<void>();
   private menuSaveAs = new Subject<void>();
   private menuOpen = new Subject<void>();
@@ -52,6 +54,10 @@ export class ElectronService {
 
       window.electronAPI.onMenuPrint(() => {
         this.ngZone.run(() => this.menuPrint.next());
+      });
+
+      window.electronAPI.onFileChangedExternally((data) => {
+        this.ngZone.run(() => this.fileChangedExternally.next(data));
       });
     }
   }
