@@ -8,6 +8,8 @@ import { SplitPaneComponent } from './components/split-pane/split-pane.component
 import { ElectronService } from './services/electron.service';
 import { SettingsService } from './services/settings.service';
 import { ThemeService } from './services/theme.service';
+import { FeedbackPopoverComponent } from './components/feedback-popover/feedback-popover.component';
+import { FeedbackService } from './services/feedback.service';
 
 @Component({
   selector: 'app-root',
@@ -17,7 +19,8 @@ import { ThemeService } from './services/theme.service';
     ToolbarComponent,
     MarkdownViewerComponent,
     MarkdownEditorComponent,
-    SplitPaneComponent
+    SplitPaneComponent,
+    FeedbackPopoverComponent
   ],
   template: `
     <div class="app-container">
@@ -36,6 +39,7 @@ import { ThemeService } from './services/theme.service';
         <div *ngIf="!isEditMode" class="view-mode">
           <app-markdown-viewer
             [content]="content"
+            (requestFeedback)="onRequestFeedback($event)"
             class="full-viewer">
           </app-markdown-viewer>
         </div>
@@ -71,6 +75,15 @@ import { ThemeService } from './services/theme.service';
           <p class="hint">Or drag and drop a .md file here</p>
         </div>
       </div>
+
+      <app-feedback-popover
+        *ngIf="feedbackPopoverVisible"
+        [top]="feedbackPopoverTop"
+        [left]="feedbackPopoverLeft"
+        [snippet]="feedbackPopoverSnippet"
+        (save)="onFeedbackSave($event)"
+        (cancel)="onFeedbackCancel()">
+      </app-feedback-popover>
     </div>
   `,
   styles: [`
@@ -171,12 +184,24 @@ export class AppComponent implements OnInit, OnDestroy {
   currentFilePath: string | null = null;
   hasUnsavedChanges = false;
 
+  feedbackPopoverVisible = false;
+  feedbackPopoverTop = 0;
+  feedbackPopoverLeft = 0;
+  feedbackPopoverSnippet = '';
+  private pendingFeedback: {
+    selectedText: string;
+    contextBefore: string;
+    contextAfter: string;
+    headingPath: string[];
+  } | null = null;
+
   private subscriptions: Subscription[] = [];
 
   constructor(
     private electronService: ElectronService,
     private settingsService: SettingsService,
-    private themeService: ThemeService
+    private themeService: ThemeService,
+    private feedbackService: FeedbackService
   ) {}
 
   ngOnInit(): void {
@@ -185,6 +210,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.electronService.fileOpened$.subscribe(data => {
         this.content = data.content;
         this.currentFilePath = data.filePath;
+        this.feedbackService.setCurrentFile(this.currentFilePath);
         this.hasUnsavedChanges = false;
       })
     );
@@ -220,6 +246,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (result) {
       this.content = result.content;
       this.currentFilePath = result.filePath;
+      this.feedbackService.setCurrentFile(this.currentFilePath);
       this.hasUnsavedChanges = false;
     }
   }
@@ -246,6 +273,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (success) {
       this.hasUnsavedChanges = false;
       this.currentFilePath = await this.electronService.getCurrentFilePath();
+      this.feedbackService.setCurrentFile(this.currentFilePath);
     }
   }
 
@@ -265,5 +293,42 @@ export class AppComponent implements OnInit, OnDestroy {
   printFile(): void {
     if (!this.content) return;
     window.print();
+  }
+
+  onRequestFeedback(data: {
+    selectedText: string;
+    contextBefore: string;
+    contextAfter: string;
+    headingPath: string[];
+    rect: { top: number; left: number; bottom: number };
+  }): void {
+    this.pendingFeedback = {
+      selectedText: data.selectedText,
+      contextBefore: data.contextBefore,
+      contextAfter: data.contextAfter,
+      headingPath: data.headingPath
+    };
+    this.feedbackPopoverSnippet = data.selectedText.slice(0, 80);
+    this.feedbackPopoverTop = data.rect.bottom + 8;
+    this.feedbackPopoverLeft = Math.max(8, data.rect.left);
+    this.feedbackPopoverVisible = true;
+  }
+
+  onFeedbackSave(feedback: string): void {
+    if (!this.pendingFeedback) return;
+    this.feedbackService.add({
+      selectedText: this.pendingFeedback.selectedText,
+      contextBefore: this.pendingFeedback.contextBefore,
+      contextAfter: this.pendingFeedback.contextAfter,
+      headingPath: this.pendingFeedback.headingPath,
+      feedback
+    });
+    this.feedbackPopoverVisible = false;
+    this.pendingFeedback = null;
+  }
+
+  onFeedbackCancel(): void {
+    this.feedbackPopoverVisible = false;
+    this.pendingFeedback = null;
   }
 }
