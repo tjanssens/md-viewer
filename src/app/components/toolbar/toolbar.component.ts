@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ElectronService } from '../../services/electron.service';
-import { SettingsService, AppSettings } from '../../services/settings.service';
+import { SettingsService, AppSettings, Theme } from '../../services/settings.service';
 
 @Component({
   selector: 'app-toolbar',
@@ -51,6 +51,14 @@ import { SettingsService, AppSettings } from '../../services/settings.service';
             <option *ngFor="let size of fontSizes" [value]="size">{{ size }}px</option>
           </select>
         </div>
+        <div class="theme-selector">
+          <button class="theme-btn" [title]="'Thema: ' + currentTheme">🌓</button>
+          <div class="theme-menu">
+            <button (click)="setTheme('auto')" [class.active]="currentTheme === 'auto'">Auto</button>
+            <button (click)="setTheme('light')" [class.active]="currentTheme === 'light'">Licht</button>
+            <button (click)="setTheme('dark')" [class.active]="currentTheme === 'dark'">Donker</button>
+          </div>
+        </div>
       </div>
     </div>
   `,
@@ -60,8 +68,8 @@ import { SettingsService, AppSettings } from '../../services/settings.service';
       justify-content: space-between;
       align-items: center;
       padding: 8px 16px;
-      background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
-      border-bottom: 1px solid #dee2e6;
+      background: var(--color-bg-elevated);
+      border-bottom: 1px solid var(--color-border);
       gap: 16px;
       flex-shrink: 0;
     }
@@ -77,10 +85,10 @@ import { SettingsService, AppSettings } from '../../services/settings.service';
       align-items: center;
       gap: 6px;
       padding: 8px 14px;
-      border: 1px solid #ced4da;
+      border: 1px solid var(--color-border);
       border-radius: 6px;
-      background: #ffffff;
-      color: #495057;
+      background: var(--color-bg);
+      color: var(--color-text);
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
@@ -88,12 +96,12 @@ import { SettingsService, AppSettings } from '../../services/settings.service';
     }
 
     .btn:hover:not(:disabled) {
-      background: #e9ecef;
-      border-color: #adb5bd;
+      background: var(--color-bg-elevated);
+      border-color: var(--color-border-strong);
     }
 
     .btn:active:not(:disabled) {
-      background: #dee2e6;
+      background: var(--color-border);
     }
 
     .btn:disabled {
@@ -102,13 +110,13 @@ import { SettingsService, AppSettings } from '../../services/settings.service';
     }
 
     .btn.active {
-      background: #0d6efd;
+      background: var(--color-primary);
       color: white;
-      border-color: #0d6efd;
+      border-color: var(--color-primary);
     }
 
     .btn.active:hover {
-      background: #0b5ed7;
+      background: var(--color-primary-hover);
     }
 
     .icon {
@@ -118,7 +126,7 @@ import { SettingsService, AppSettings } from '../../services/settings.service';
     .separator {
       width: 1px;
       height: 28px;
-      background: #dee2e6;
+      background: var(--color-border);
       margin: 0 8px;
     }
 
@@ -130,29 +138,86 @@ import { SettingsService, AppSettings } from '../../services/settings.service';
 
     label {
       font-size: 13px;
-      color: #6c757d;
+      color: var(--color-text-muted);
       font-weight: 500;
     }
 
     select {
       padding: 6px 12px;
-      border: 1px solid #ced4da;
+      border: 1px solid var(--color-border);
       border-radius: 6px;
-      background: #ffffff;
+      background: var(--color-bg);
+      color: var(--color-text);
       font-size: 13px;
-      color: #495057;
       cursor: pointer;
       min-width: 140px;
     }
 
     select:hover {
-      border-color: #adb5bd;
+      border-color: var(--color-border-strong);
     }
 
     select:focus {
       outline: none;
-      border-color: #0d6efd;
+      border-color: var(--color-primary);
       box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+    }
+
+    .theme-selector {
+      position: relative;
+      display: inline-block;
+    }
+
+    .theme-selector:hover .theme-menu,
+    .theme-selector:focus-within .theme-menu {
+      display: flex;
+    }
+
+    .theme-btn {
+      background: none;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--color-text);
+    }
+
+    .theme-btn:hover {
+      background: var(--color-bg-elevated);
+    }
+
+    .theme-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      flex-direction: column;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 100;
+      min-width: 120px;
+    }
+
+    .theme-menu button {
+      background: none;
+      border: none;
+      padding: 8px 12px;
+      text-align: left;
+      cursor: pointer;
+      color: var(--color-text);
+      font-size: 14px;
+    }
+
+    .theme-menu button:hover {
+      background: var(--color-bg-elevated);
+    }
+
+    .theme-menu button.active {
+      background: var(--color-primary);
+      color: white;
     }
   `]
 })
@@ -205,5 +270,13 @@ export class ToolbarComponent implements OnInit {
 
   onPrint(): void {
     this.print.emit();
+  }
+
+  get currentTheme(): Theme {
+    return this.settingsService.getSettings().theme;
+  }
+
+  setTheme(theme: Theme): void {
+    this.settingsService.setTheme(theme);
   }
 }
