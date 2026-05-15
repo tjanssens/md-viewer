@@ -24,6 +24,7 @@ export interface OutlineHeading {
       [style.fontFamily]="fontFamily"
       [style.fontSize.px]="fontSize"
       (mouseup)="onMouseUp()"
+      (click)="onClick($event)"
       [innerHTML]="renderedContent">
     </div>
     <button
@@ -216,6 +217,7 @@ export class MarkdownViewerComponent implements OnChanges, AfterViewChecked {
     headingPath: string[];
     rect: { top: number; left: number; bottom: number };
   }>();
+  @Output() selectFeedback = new EventEmitter<string>();
 
   showSelectionButton = false;
   selectionButtonTop = 0;
@@ -458,5 +460,14 @@ export class MarkdownViewerComponent implements OnChanges, AfterViewChecked {
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     el.classList.add('flash');
     setTimeout(() => el.classList.remove('flash'), 1200);
+  }
+
+  onClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    const highlight = target.closest('.feedback-highlight') as HTMLElement | null;
+    if (highlight) {
+      const id = highlight.getAttribute('data-feedback-id');
+      if (id) this.selectFeedback.emit(id);
+    }
   }
 }

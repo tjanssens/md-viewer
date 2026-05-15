@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FeedbackService, FeedbackItem } from '../../services/feedback.service';
 import { Observable } from 'rxjs';
@@ -28,12 +28,14 @@ import { Observable } from 'rxjs';
         </div>
       </div>
 
-      <div class="items">
+      <div class="items" #itemsContainer>
         <div
           *ngFor="let item of items$ | async"
           class="item"
+          [attr.data-item-id]="item.id"
           [class.processed]="item.status === 'processed'"
           [class.orphaned]="item.status === 'orphaned'"
+          [class.selected]="item.id === selectedId"
           (click)="onItemClick(item)">
 
           <div class="item-header">
@@ -163,6 +165,10 @@ import { Observable } from 'rxjs';
     .item:hover {
       border-color: var(--color-primary);
     }
+    .item.selected {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 2px var(--color-primary);
+    }
     .item.processed {
       opacity: 0.6;
     }
@@ -239,14 +245,35 @@ import { Observable } from 'rxjs';
     }
   `]
 })
-export class FeedbackSidebarComponent {
+export class FeedbackSidebarComponent implements OnChanges, AfterViewInit {
+  @Input() selectedId: string | null = null;
   @Output() close = new EventEmitter<void>();
   @Output() scrollTo = new EventEmitter<string>();
+
+  @ViewChild('itemsContainer') itemsContainer?: ElementRef<HTMLDivElement>;
 
   items$: Observable<FeedbackItem[]>;
 
   constructor(private feedbackService: FeedbackService) {
     this.items$ = this.feedbackService.items$;
+  }
+
+  ngAfterViewInit(): void {
+    if (this.selectedId) this.scrollToSelected();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['selectedId'] && this.selectedId) {
+      setTimeout(() => this.scrollToSelected(), 0);
+    }
+  }
+
+  private scrollToSelected(): void {
+    if (!this.itemsContainer || !this.selectedId) return;
+    const el = this.itemsContainer.nativeElement.querySelector(
+      `[data-item-id="${this.selectedId}"]`
+    ) as HTMLElement | null;
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   hasOpen(items: FeedbackItem[]): boolean {

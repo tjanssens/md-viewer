@@ -58,10 +58,12 @@ import { DocumentOutlineComponent } from './components/document-outline/document
           <app-markdown-viewer
             [content]="content"
             (requestFeedback)="onRequestFeedback($event)"
+            (selectFeedback)="onViewerSelectFeedback($event)"
             class="full-viewer">
           </app-markdown-viewer>
           <app-feedback-sidebar
             *ngIf="feedbackSidebarOpen"
+            [selectedId]="selectedFeedbackId"
             (close)="toggleFeedbackSidebar()"
             (scrollTo)="onFeedbackScrollTo($event)">
           </app-feedback-sidebar>
@@ -230,6 +232,7 @@ export class AppComponent implements OnInit, OnDestroy {
   feedbackPopoverLeft = 0;
   feedbackPopoverSnippet = '';
   feedbackSidebarOpen = false;
+  selectedFeedbackId: string | null = null;
   outlineOpen = false;
   reloadToastVisible = false;
   reloadConflictVisible = false;
@@ -394,6 +397,13 @@ export class AppComponent implements OnInit, OnDestroy {
 
   toggleFeedbackSidebar(): void {
     this.feedbackSidebarOpen = !this.feedbackSidebarOpen;
+  }
+
+  onViewerSelectFeedback(id: string): void {
+    this.selectedFeedbackId = id;
+    if (!this.feedbackSidebarOpen) {
+      this.feedbackSidebarOpen = true;
+    }
   }
 
   toggleOutline(): void {
