@@ -362,9 +362,13 @@ export class MarkdownViewerComponent implements OnChanges, AfterViewChecked {
     }
 
     if (statusUpdates.length > 0) {
-      for (const upd of statusUpdates) {
-        this.feedbackService.update(upd.id, { status: upd.status, shifted: upd.shifted });
-      }
+      const updatesById = new Map(statusUpdates.map(u => [u.id, u]));
+      const updatedItems = items.map(item => {
+        const upd = updatesById.get(item.id);
+        if (!upd) return item;
+        return { ...item, status: upd.status, shifted: upd.shifted };
+      });
+      this.feedbackService.replaceAll(updatedItems);
     }
   }
 

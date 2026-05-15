@@ -113,7 +113,7 @@ function saveFile(filePath: string, content: string): boolean {
     currentFilePath = filePath;
     lastKnownMtime = fs.statSync(filePath).mtimeMs;
     mainWindow?.setTitle(`MD Viewer - ${path.basename(filePath)}`);
-    if (!currentWatcher) startWatcher(filePath);
+    startWatcher(filePath);
     return true;
   } catch (error) {
     console.error('Error saving file:', error);
