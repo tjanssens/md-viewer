@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { ToolbarComponent } from './components/toolbar/toolbar.component';
@@ -9,6 +9,7 @@ import { ElectronService } from './services/electron.service';
 import { SettingsService } from './services/settings.service';
 import { ThemeService } from './services/theme.service';
 import { FeedbackPopoverComponent } from './components/feedback-popover/feedback-popover.component';
+import { FeedbackSidebarComponent } from './components/feedback-sidebar/feedback-sidebar.component';
 import { FeedbackService } from './services/feedback.service';
 
 @Component({
@@ -20,18 +21,21 @@ import { FeedbackService } from './services/feedback.service';
     MarkdownViewerComponent,
     MarkdownEditorComponent,
     SplitPaneComponent,
-    FeedbackPopoverComponent
+    FeedbackPopoverComponent,
+    FeedbackSidebarComponent
   ],
   template: `
     <div class="app-container">
       <app-toolbar
         [isEditMode]="isEditMode"
         [hasContent]="content.length > 0"
+        [feedbackSidebarOpen]="feedbackSidebarOpen"
         (toggleEdit)="toggleEditMode()"
         (save)="saveFile()"
         (saveAs)="saveFileAs()"
         (open)="openFile()"
-        (print)="printFile()">
+        (print)="printFile()"
+        (toggleFeedbackSidebar)="toggleFeedbackSidebar()">
       </app-toolbar>
 
       <div class="main-content">
@@ -42,6 +46,11 @@ import { FeedbackService } from './services/feedback.service';
             (requestFeedback)="onRequestFeedback($event)"
             class="full-viewer">
           </app-markdown-viewer>
+          <app-feedback-sidebar
+            *ngIf="feedbackSidebarOpen"
+            (close)="toggleFeedbackSidebar()"
+            (scrollTo)="onFeedbackScrollTo($event)">
+          </app-feedback-sidebar>
         </div>
 
         <!-- Edit Mode with Split Pane -->
@@ -102,10 +111,16 @@ import { FeedbackService } from './services/feedback.service';
       position: relative;
     }
 
-    .view-mode, .edit-mode {
+    .view-mode {
+      height: 100%;
+      display: flex;
+    }
+    .edit-mode {
       height: 100%;
     }
-
+    .full-viewer {
+      flex: 1;
+    }
     .full-viewer, .preview-viewer {
       height: 100%;
     }
@@ -188,6 +203,8 @@ export class AppComponent implements OnInit, OnDestroy {
   feedbackPopoverTop = 0;
   feedbackPopoverLeft = 0;
   feedbackPopoverSnippet = '';
+  feedbackSidebarOpen = false;
+  @ViewChild(MarkdownViewerComponent) viewerComponent?: MarkdownViewerComponent;
   private pendingFeedback: {
     selectedText: string;
     contextBefore: string;
@@ -211,6 +228,7 @@ export class AppComponent implements OnInit, OnDestroy {
         this.content = data.content;
         this.currentFilePath = data.filePath;
         this.feedbackService.setCurrentFile(this.currentFilePath);
+        (window as any).__currentFilename = this.currentFilePath?.split(/[/\\]/).pop() || 'document.md';
         this.hasUnsavedChanges = false;
       })
     );
@@ -247,6 +265,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.content = result.content;
       this.currentFilePath = result.filePath;
       this.feedbackService.setCurrentFile(this.currentFilePath);
+      (window as any).__currentFilename = this.currentFilePath?.split(/[/\\]/).pop() || 'document.md';
       this.hasUnsavedChanges = false;
     }
   }
@@ -330,5 +349,13 @@ export class AppComponent implements OnInit, OnDestroy {
   onFeedbackCancel(): void {
     this.feedbackPopoverVisible = false;
     this.pendingFeedback = null;
+  }
+
+  toggleFeedbackSidebar(): void {
+    this.feedbackSidebarOpen = !this.feedbackSidebarOpen;
+  }
+
+  onFeedbackScrollTo(id: string): void {
+    this.viewerComponent?.scrollToFeedback(id);
   }
 }

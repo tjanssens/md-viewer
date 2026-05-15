@@ -51,6 +51,13 @@ import { SettingsService, AppSettings, Theme } from '../../services/settings.ser
             <option *ngFor="let size of fontSizes" [value]="size">{{ size }}px</option>
           </select>
         </div>
+        <button
+          class="feedback-toggle-btn"
+          (click)="toggleFeedbackSidebar.emit()"
+          [class.active]="feedbackSidebarOpen"
+          title="Feedback paneel">
+          💬
+        </button>
         <div class="theme-selector">
           <button class="theme-btn" [title]="'Thema: ' + currentTheme">🌓</button>
           <div class="theme-menu">
@@ -163,6 +170,24 @@ import { SettingsService, AppSettings, Theme } from '../../services/settings.ser
       box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
     }
 
+    .feedback-toggle-btn {
+      background: none;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--color-text);
+    }
+    .feedback-toggle-btn:hover {
+      background: var(--color-bg-elevated);
+    }
+    .feedback-toggle-btn.active {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+
     .theme-selector {
       position: relative;
       display: inline-block;
@@ -229,6 +254,8 @@ export class ToolbarComponent implements OnInit {
   @Output() saveAs = new EventEmitter<void>();
   @Output() open = new EventEmitter<void>();
   @Output() print = new EventEmitter<void>();
+  @Input() feedbackSidebarOpen = false;
+  @Output() toggleFeedbackSidebar = new EventEmitter<void>();
 
   fonts: string[] = [];
   fontSizes = [12, 14, 16, 18, 20, 22, 24, 28, 32];
