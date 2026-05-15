@@ -188,7 +188,7 @@ import { getHeadingPath } from '../../services/heading-path.util';
     }
   `]
 })
-export class MarkdownViewerComponent implements OnChanges {
+export class MarkdownViewerComponent implements OnChanges, AfterViewChecked {
   @Input() content = '';
   @Input() scrollPercent = 0;
   @ViewChild('viewer') viewerRef!: ElementRef<HTMLDivElement>;
@@ -196,6 +196,8 @@ export class MarkdownViewerComponent implements OnChanges {
   renderedContent = '';
   fontFamily = 'Georgia';
   fontSize = 16;
+
+  private needsHighlightApply = false;
 
   @Output() requestFeedback = new EventEmitter<{
     selectedText: string;
@@ -225,15 +227,26 @@ export class MarkdownViewerComponent implements OnChanges {
       this.fontFamily = settings.fontFamily;
       this.fontSize = settings.fontSize;
     });
+    this.feedbackService.items$.subscribe(() => {
+      queueMicrotask(() => this.applyHighlights());
+    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['content']) {
       this.renderedContent = this.markdownService.parse(this.content);
+      this.needsHighlightApply = true;
     }
 
     if (changes['scrollPercent'] && this.viewerRef) {
       this.syncScroll(this.scrollPercent);
+    }
+  }
+
+  ngAfterViewChecked(): void {
+    if (this.needsHighlightApply) {
+      this.needsHighlightApply = false;
+      this.applyHighlights();
     }
   }
 
@@ -319,5 +332,92 @@ export class MarkdownViewerComponent implements OnChanges {
   hideSelectionButton(): void {
     this.showSelectionButton = false;
     this.pendingSelection = null;
+  }
+
+  private applyHighlights(): void {
+    if (!this.viewerRef) return;
+    const root = this.viewerRef.nativeElement;
+
+    root.querySelectorAll('.feedback-highlight').forEach(el => {
+      const parent = el.parentNode;
+      if (!parent) return;
+      while (el.firstChild) parent.insertBefore(el.firstChild, el);
+      parent.removeChild(el);
+    });
+    root.normalize();
+
+    const items = this.feedbackService.getItems();
+    const text = root.textContent || '';
+    const statusUpdates: { id: string; status: any; shifted: boolean }[] = [];
+
+    for (const item of items) {
+      const match = findAnchor(item, text);
+      const { status, shifted } = resolveStatus(item, match);
+      if (status !== item.status || !!shifted !== !!item.shifted) {
+        statusUpdates.push({ id: item.id, status, shifted });
+      }
+      if (match.matchType !== 'none') {
+        this.wrapRange(root, match.startIndex, match.endIndex, item);
+      }
+    }
+
+    if (statusUpdates.length > 0) {
+      for (const upd of statusUpdates) {
+        this.feedbackService.update(upd.id, { status: upd.status, shifted: upd.shifted });
+      }
+    }
+  }
+
+  private wrapRange(root: HTMLElement, start: number, end: number, item: FeedbackItem): void {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    let offset = 0;
+    let startNode: Text | null = null;
+    let startOffsetInNode = 0;
+    let endNode: Text | null = null;
+    let endOffsetInNode = 0;
+
+    while (walker.nextNode()) {
+      const node = walker.currentNode as Text;
+      const length = node.data.length;
+      if (!startNode && offset + length > start) {
+        startNode = node;
+        startOffsetInNode = start - offset;
+      }
+      if (!endNode && offset + length >= end) {
+        endNode = node;
+        endOffsetInNode = end - offset;
+        break;
+      }
+      offset += length;
+    }
+
+    if (!startNode || !endNode) return;
+
+    try {
+      const range = document.createRange();
+      range.setStart(startNode, startOffsetInNode);
+      range.setEnd(endNode, endOffsetInNode);
+      const span = document.createElement('span');
+      span.className = 'feedback-highlight' + (item.status === 'processed' ? ' processed' : '');
+      span.setAttribute('data-feedback-id', item.id);
+      try {
+        range.surroundContents(span);
+      } catch {
+        const frag = range.extractContents();
+        span.appendChild(frag);
+        range.insertNode(span);
+      }
+    } catch (error) {
+      console.warn('Could not wrap highlight for item', item.id, error);
+    }
+  }
+
+  scrollToFeedback(id: string): void {
+    if (!this.viewerRef) return;
+    const el = this.viewerRef.nativeElement.querySelector(`[data-feedback-id="${id}"]`) as HTMLElement | null;
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 1200);
   }
 }
