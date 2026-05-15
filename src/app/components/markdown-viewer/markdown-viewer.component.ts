@@ -1,10 +1,17 @@
 import { Component, Input, ElementRef, ViewChild, OnChanges, SimpleChanges, Output, EventEmitter, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { BehaviorSubject } from 'rxjs';
 import { MarkdownService } from '../../services/markdown.service';
 import { SettingsService } from '../../services/settings.service';
 import { FeedbackService, FeedbackItem } from '../../services/feedback.service';
 import { findAnchor, resolveStatus } from '../../services/feedback-anchor.util';
 import { getHeadingPath } from '../../services/heading-path.util';
+
+export interface OutlineHeading {
+  id: string;
+  text: string;
+  level: number;
+}
 
 @Component({
   selector: 'app-markdown-viewer',
@@ -199,6 +206,9 @@ export class MarkdownViewerComponent implements OnChanges, AfterViewChecked {
 
   private needsHighlightApply = false;
 
+  private outlineSubject = new BehaviorSubject<OutlineHeading[]>([]);
+  outline$ = this.outlineSubject.asObservable();
+
   @Output() requestFeedback = new EventEmitter<{
     selectedText: string;
     contextBefore: string;
@@ -246,7 +256,32 @@ export class MarkdownViewerComponent implements OnChanges, AfterViewChecked {
   ngAfterViewChecked(): void {
     if (this.needsHighlightApply) {
       this.needsHighlightApply = false;
+      this.updateOutline();
       this.applyHighlights();
+    }
+  }
+
+  private updateOutline(): void {
+    if (!this.viewerRef) return;
+    const root = this.viewerRef.nativeElement;
+    const headings = Array.from(root.querySelectorAll('h1, h2, h3, h4, h5, h6')) as HTMLElement[];
+    const outline: OutlineHeading[] = headings.map((h, idx) => {
+      const id = `outline-${idx}`;
+      h.setAttribute('data-outline-id', id);
+      return {
+        id,
+        text: h.textContent?.trim() || '',
+        level: parseInt(h.tagName.charAt(1), 10)
+      };
+    });
+    this.outlineSubject.next(outline);
+  }
+
+  scrollToHeading(id: string): void {
+    if (!this.viewerRef) return;
+    const el = this.viewerRef.nativeElement.querySelector(`[data-outline-id="${id}"]`) as HTMLElement | null;
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }
 
