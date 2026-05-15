@@ -79,6 +79,8 @@ import { ThemeService } from './services/theme.service';
       flex-direction: column;
       height: 100vh;
       overflow: hidden;
+      background: var(--color-bg);
+      color: var(--color-text);
     }
 
     .main-content {
@@ -96,8 +98,8 @@ import { ThemeService } from './services/theme.service';
     }
 
     .preview-viewer {
-      background: #ffffff;
-      border-left: 1px solid #e9ecef;
+      background: var(--color-bg);
+      border-left: 1px solid var(--color-border);
     }
 
     .welcome-overlay {
@@ -109,7 +111,7 @@ import { ThemeService } from './services/theme.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+      background: var(--color-bg-welcome);
     }
 
     .welcome-content {
@@ -120,13 +122,13 @@ import { ThemeService } from './services/theme.service';
     .welcome-content h1 {
       font-size: 48px;
       font-weight: 300;
-      color: #343a40;
+      color: var(--color-heading);
       margin: 0 0 16px;
     }
 
     .welcome-content p {
       font-size: 18px;
-      color: #6c757d;
+      color: var(--color-text-muted);
       margin: 0 0 32px;
     }
 
@@ -138,7 +140,7 @@ import { ThemeService } from './services/theme.service';
       font-size: 18px;
       font-weight: 500;
       color: #ffffff;
-      background: #0d6efd;
+      background: var(--color-primary);
       border: none;
       border-radius: 8px;
       cursor: pointer;
@@ -146,7 +148,7 @@ import { ThemeService } from './services/theme.service';
     }
 
     .welcome-btn:hover {
-      background: #0b5ed7;
+      background: var(--color-primary-hover);
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
     }
@@ -158,7 +160,7 @@ import { ThemeService } from './services/theme.service';
     .hint {
       margin-top: 24px !important;
       font-size: 14px !important;
-      color: #adb5bd !important;
+      color: var(--color-text-subtle) !important;
     }
   `]
 })
