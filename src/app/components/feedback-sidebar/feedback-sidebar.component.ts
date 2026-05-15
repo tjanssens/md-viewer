@@ -9,21 +9,21 @@ import { Observable } from 'rxjs';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <aside class="sidebar">
+    <aside class="sidebar" *ngIf="(items$ | async) as items">
       <header class="sidebar-header">
-        <h3>Feedback ({{ (items$ | async)?.length || 0 }})</h3>
+        <h3>Feedback ({{ items.length }})</h3>
         <button class="close-btn" (click)="close.emit()" title="Close">✕</button>
       </header>
 
       <div class="actions">
-        <button class="copy-btn" (click)="onCopy()" [disabled]="!hasOpen((items$ | async) || [])">
+        <button class="copy-btn" (click)="onCopy()" [disabled]="!hasOpen(items)">
           📋 Copy all feedback
         </button>
         <div class="bulk-actions">
-          <button (click)="onRemoveProcessed()" [disabled]="!hasStatus((items$ | async) || [], 'processed')">
+          <button (click)="onRemoveProcessed()" [disabled]="!hasStatus(items, 'processed')">
             Remove processed
           </button>
-          <button (click)="onRemoveOrphaned()" [disabled]="!hasStatus((items$ | async) || [], 'orphaned')">
+          <button (click)="onRemoveOrphaned()" [disabled]="!hasStatus(items, 'orphaned')">
             Remove orphaned
           </button>
         </div>
@@ -31,7 +31,7 @@ import { Observable } from 'rxjs';
 
       <div class="items" #itemsContainer>
         <div
-          *ngFor="let item of items$ | async"
+          *ngFor="let item of items"
           class="item"
           [attr.data-item-id]="item.id"
           [class.processed]="item.status === 'processed'"
@@ -43,42 +43,40 @@ import { Observable } from 'rxjs';
             <span class="item-path" *ngIf="item.headingPath.length > 0">
               {{ item.headingPath.join(' › ') }}
             </span>
-            <span class="item-actions">
+            <span class="item-actions" *ngIf="editingState?.id !== item.id">
               <button
                 class="edit-btn"
-                *ngIf="editingId !== item.id"
                 (click)="startEdit(item, $event)"
                 title="Edit">✏️</button>
               <button
                 class="status-btn"
-                *ngIf="item.status !== 'processed' && editingId !== item.id"
+                *ngIf="item.status !== 'processed'"
                 (click)="$event.stopPropagation(); markProcessed(item)"
                 title="Mark as processed">✓</button>
               <button
                 class="status-btn"
-                *ngIf="item.status === 'processed' && editingId !== item.id"
+                *ngIf="item.status === 'processed'"
                 (click)="$event.stopPropagation(); markOpen(item)"
                 title="Mark as open">↺</button>
               <button
                 class="delete-btn"
-                *ngIf="editingId !== item.id"
                 (click)="$event.stopPropagation(); remove(item)"
                 title="Delete">🗑️</button>
             </span>
           </div>
 
           <div class="item-snippet">"{{ item.selectedText | slice:0:60 }}{{ item.selectedText.length > 60 ? '…' : '' }}"</div>
-          <div class="item-feedback" *ngIf="editingId !== item.id">{{ item.feedback }}</div>
-          <div class="edit-block" *ngIf="editingId === item.id" (click)="$event.stopPropagation()">
+          <div class="item-feedback" *ngIf="editingState?.id !== item.id">{{ item.feedback }}</div>
+          <div class="edit-block" *ngIf="editingState?.id === item.id && editingState as edit" (click)="$event.stopPropagation()">
             <textarea
-              [(ngModel)]="editingText"
+              [(ngModel)]="edit.text"
               (keydown)="onEditKeydown($event, item)"
               rows="4"
               placeholder="Feedback…">
             </textarea>
             <div class="edit-actions">
               <button class="btn-cancel" (click)="cancelEdit()">Cancel</button>
-              <button class="btn-save" (click)="saveEdit(item)" [disabled]="!editingText.trim()">Save</button>
+              <button class="btn-save" (click)="saveEdit(item)" [disabled]="!edit.text.trim()">Save</button>
             </div>
           </div>
 
@@ -89,7 +87,7 @@ import { Observable } from 'rxjs';
           </div>
         </div>
 
-        <div class="empty" *ngIf="((items$ | async) || []).length === 0">
+        <div class="empty" *ngIf="items.length === 0">
           No feedback yet. Select text in the viewer and click "💬 Add feedback".
         </div>
       </div>
@@ -325,8 +323,7 @@ export class FeedbackSidebarComponent implements OnChanges, AfterViewInit {
 
   items$: Observable<FeedbackItem[]>;
 
-  editingId: string | null = null;
-  editingText = '';
+  editingState: { id: string; text: string } | null = null;
 
   constructor(private feedbackService: FeedbackService) {
     this.items$ = this.feedbackService.items$;
@@ -373,22 +370,20 @@ export class FeedbackSidebarComponent implements OnChanges, AfterViewInit {
 
   startEdit(item: FeedbackItem, event: MouseEvent): void {
     event.stopPropagation();
-    this.editingId = item.id;
-    this.editingText = item.feedback;
+    this.editingState = { id: item.id, text: item.feedback };
   }
 
   saveEdit(item: FeedbackItem): void {
-    const text = this.editingText.trim();
+    if (!this.editingState) return;
+    const text = this.editingState.text.trim();
     if (text) {
       this.feedbackService.update(item.id, { feedback: text });
     }
-    this.editingId = null;
-    this.editingText = '';
+    this.editingState = null;
   }
 
   cancelEdit(): void {
-    this.editingId = null;
-    this.editingText = '';
+    this.editingState = null;
   }
 
   onEditKeydown(event: KeyboardEvent, item: FeedbackItem): void {

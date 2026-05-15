@@ -276,7 +276,13 @@ export class MarkdownViewerComponent implements OnChanges, AfterViewChecked {
         level: parseInt(h.tagName.charAt(1), 10)
       };
     });
-    this.outlineSubject.next(outline);
+
+    const prev = this.outlineSubject.value;
+    const changed = prev.length !== outline.length
+      || prev.some((p, i) => p.text !== outline[i].text || p.level !== outline[i].level);
+    if (changed) {
+      this.outlineSubject.next(outline);
+    }
   }
 
   scrollToHeading(id: string): void {
@@ -475,33 +481,6 @@ export class MarkdownViewerComponent implements OnChanges, AfterViewChecked {
       const textNode = walker.currentNode as Text;
       if (textNode === node) {
         return total + offset;
-      }
-      total += textNode.data.length;
-    }
-    // Fallback: node is een element (bv. selection ends precies op een element boundary)
-    // Walk descendant text nodes om de totale text length tot dat punt te berekenen.
-    if (node.nodeType === Node.ELEMENT_NODE) {
-      const el = node as Element;
-      const children = Array.from(el.childNodes).slice(0, offset);
-      let pre = 0;
-      for (const child of children) {
-        pre += (child.textContent || '').length;
-      }
-      // Calculate offset of `node` (the element) within root by walking textContent up to it
-      return this.computeElementStartOffset(root, el) + pre;
-    }
-    return total;
-  }
-
-  private computeElementStartOffset(root: HTMLElement, target: Element): number {
-    // Walk through root's text content order, accumulating length until we hit target.
-    let total = 0;
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-    while (walker.nextNode()) {
-      const textNode = walker.currentNode as Text;
-      // If textNode is inside target, we've reached it
-      if (target.contains(textNode)) {
-        return total;
       }
       total += textNode.data.length;
     }
