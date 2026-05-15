@@ -1,18 +1,22 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
+export type Theme = 'auto' | 'light' | 'dark';
+
 export interface AppSettings {
   fontFamily: string;
   fontSize: number;
   editorFontFamily: string;
   editorFontSize: number;
+  theme: Theme;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
   fontFamily: 'Georgia',
   fontSize: 16,
   editorFontFamily: 'Consolas',
-  editorFontSize: 14
+  editorFontSize: 14,
+  theme: 'auto'
 };
 
 @Injectable({
@@ -66,5 +70,9 @@ export class SettingsService {
 
   setEditorFontSize(editorFontSize: number): void {
     this.updateSettings({ editorFontSize });
+  }
+
+  setTheme(theme: Theme): void {
+    this.updateSettings({ theme });
   }
 }
