@@ -11,6 +11,7 @@ export interface ElectronAPI {
   onMenuOpen: (callback: () => void) => void;
   onMenuToggleEdit: (callback: () => void) => void;
   onMenuPrint: (callback: () => void) => void;
+  onFileChangedExternally: (callback: (data: { filePath: string; content: string }) => void) => void;
   removeAllListeners: (channel: string) => void;
 }
 
