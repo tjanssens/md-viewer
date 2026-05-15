@@ -1,7 +1,10 @@
-import { Component, Input, ElementRef, ViewChild, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, ElementRef, ViewChild, OnChanges, SimpleChanges, Output, EventEmitter, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MarkdownService } from '../../services/markdown.service';
 import { SettingsService } from '../../services/settings.service';
+import { FeedbackService, FeedbackItem } from '../../services/feedback.service';
+import { findAnchor, resolveStatus } from '../../services/feedback-anchor.util';
+import { getHeadingPath } from '../../services/heading-path.util';
 
 @Component({
   selector: 'app-markdown-viewer',
@@ -13,8 +16,18 @@ import { SettingsService } from '../../services/settings.service';
       class="markdown-viewer"
       [style.fontFamily]="fontFamily"
       [style.fontSize.px]="fontSize"
+      (mouseup)="onMouseUp()"
       [innerHTML]="renderedContent">
     </div>
+    <button
+      *ngIf="showSelectionButton"
+      class="selection-button"
+      [style.top.px]="selectionButtonTop"
+      [style.left.px]="selectionButtonLeft"
+      (mousedown)="$event.preventDefault()"
+      (click)="onFeedbackButtonClick()">
+      💬 Feedback toevoegen
+    </button>
   `,
   styles: [`
     .markdown-viewer {
@@ -156,6 +169,23 @@ import { SettingsService } from '../../services/settings.service';
     :host ::ng-deep .feedback-highlight.flash {
       background-color: var(--color-feedback-highlight-flash);
     }
+
+    .selection-button {
+      position: fixed;
+      background: var(--color-primary);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+      z-index: 999;
+      white-space: nowrap;
+    }
+    .selection-button:hover {
+      background: var(--color-primary-hover);
+    }
   `]
 })
 export class MarkdownViewerComponent implements OnChanges {
@@ -167,9 +197,29 @@ export class MarkdownViewerComponent implements OnChanges {
   fontFamily = 'Georgia';
   fontSize = 16;
 
+  @Output() requestFeedback = new EventEmitter<{
+    selectedText: string;
+    contextBefore: string;
+    contextAfter: string;
+    headingPath: string[];
+    rect: { top: number; left: number; bottom: number };
+  }>();
+
+  showSelectionButton = false;
+  selectionButtonTop = 0;
+  selectionButtonLeft = 0;
+
+  private pendingSelection: {
+    selectedText: string;
+    contextBefore: string;
+    contextAfter: string;
+    headingPath: string[];
+  } | null = null;
+
   constructor(
     private markdownService: MarkdownService,
-    private settingsService: SettingsService
+    private settingsService: SettingsService,
+    private feedbackService: FeedbackService
   ) {
     this.settingsService.settings$.subscribe(settings => {
       this.fontFamily = settings.fontFamily;
@@ -202,5 +252,72 @@ export class MarkdownViewerComponent implements OnChanges {
       return maxScroll > 0 ? element.scrollTop / maxScroll : 0;
     }
     return 0;
+  }
+
+  onMouseUp(): void {
+    setTimeout(() => this.handleSelection(), 0);
+  }
+
+  private handleSelection(): void {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !this.viewerRef) {
+      this.showSelectionButton = false;
+      this.pendingSelection = null;
+      return;
+    }
+    const range = selection.getRangeAt(0);
+    const root = this.viewerRef.nativeElement;
+    if (!root.contains(range.commonAncestorContainer)) {
+      this.showSelectionButton = false;
+      this.pendingSelection = null;
+      return;
+    }
+
+    const selectedText = selection.toString();
+    if (selectedText.trim().length === 0) {
+      this.showSelectionButton = false;
+      this.pendingSelection = null;
+      return;
+    }
+
+    const rootText = root.textContent || '';
+    const beforeRange = document.createRange();
+    beforeRange.selectNodeContents(root);
+    beforeRange.setEnd(range.startContainer, range.startOffset);
+    const beforeText = beforeRange.toString();
+    const selectionStart = beforeText.length;
+
+    const contextBefore = rootText.slice(Math.max(0, selectionStart - 50), selectionStart);
+    const contextAfter = rootText.slice(
+      selectionStart + selectedText.length,
+      selectionStart + selectedText.length + 50
+    );
+    const headingPath = getHeadingPath(range.startContainer, root);
+
+    this.pendingSelection = { selectedText, contextBefore, contextAfter, headingPath };
+
+    const rect = range.getBoundingClientRect();
+    this.selectionButtonTop = rect.top - 40;
+    this.selectionButtonLeft = rect.left + rect.width / 2 - 80;
+    this.showSelectionButton = true;
+  }
+
+  onFeedbackButtonClick(): void {
+    if (!this.pendingSelection) return;
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const rect = sel.getRangeAt(0).getBoundingClientRect();
+    this.requestFeedback.emit({
+      ...this.pendingSelection,
+      rect: { top: rect.top, left: rect.left, bottom: rect.bottom }
+    });
+    this.showSelectionButton = false;
+    this.pendingSelection = null;
+    sel.removeAllRanges();
+  }
+
+  hideSelectionButton(): void {
+    this.showSelectionButton = false;
+    this.pendingSelection = null;
   }
 }
