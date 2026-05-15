@@ -9,11 +9,11 @@ import { CommonModule } from '@angular/common';
     <div class="toast">
       <div class="toast-message">
         <span class="toast-icon">↻</span>
-        Dit bestand is gewijzigd op schijf.
+        This file has been changed on disk.
       </div>
       <div class="toast-actions">
-        <button class="btn-primary" (click)="reload.emit()">Vernieuwen</button>
-        <button class="btn-secondary" (click)="ignore.emit()">Negeren</button>
+        <button class="btn-primary" (click)="reload.emit()">Reload</button>
+        <button class="btn-secondary" (click)="ignore.emit()">Dismiss</button>
       </div>
     </div>
   `,

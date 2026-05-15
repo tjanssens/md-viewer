@@ -8,18 +8,17 @@ import { CommonModule } from '@angular/common';
   template: `
     <div class="overlay" (click)="keepMine.emit()">
       <div class="modal" (click)="$event.stopPropagation()">
-        <h2>Bestand op schijf gewijzigd</h2>
+        <h2>File changed on disk</h2>
         <p>
-          Je hebt onopgeslagen wijzigingen. Het bestand op schijf is gewijzigd
-          door een ander proces.
+          You have unsaved changes. The file on disk has been changed by another process.
         </p>
-        <p>Wat wil je doen?</p>
+        <p>What do you want to do?</p>
         <div class="modal-actions">
           <button class="btn-danger" (click)="loadFromDisk.emit()">
-            Bestand op schijf laden (mijn wijzigingen weg)
+            Load file from disk (discard my changes)
           </button>
           <button class="btn-primary" (click)="keepMine.emit()">
-            Mijn versie behouden
+            Keep my version
           </button>
         </div>
       </div>

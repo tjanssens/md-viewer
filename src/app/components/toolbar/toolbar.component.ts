@@ -55,22 +55,22 @@ import { SettingsService, AppSettings, Theme } from '../../services/settings.ser
           class="outline-toggle-btn"
           (click)="toggleOutline.emit()"
           [class.active]="outlineOpen"
-          title="Inhoudsopgave">
+          title="Outline">
           📑
         </button>
         <button
           class="feedback-toggle-btn"
           (click)="toggleFeedbackSidebar.emit()"
           [class.active]="feedbackSidebarOpen"
-          title="Feedback paneel">
+          title="Feedback panel">
           💬
         </button>
         <div class="theme-selector">
-          <button class="theme-btn" [title]="'Thema: ' + currentTheme">🌓</button>
+          <button class="theme-btn" [title]="'Theme: ' + currentTheme">🌓</button>
           <div class="theme-menu">
             <button (click)="setTheme('auto')" [class.active]="currentTheme === 'auto'">Auto</button>
-            <button (click)="setTheme('light')" [class.active]="currentTheme === 'light'">Licht</button>
-            <button (click)="setTheme('dark')" [class.active]="currentTheme === 'dark'">Donker</button>
+            <button (click)="setTheme('light')" [class.active]="currentTheme === 'light'">Light</button>
+            <button (click)="setTheme('dark')" [class.active]="currentTheme === 'dark'">Dark</button>
           </div>
         </div>
       </div>

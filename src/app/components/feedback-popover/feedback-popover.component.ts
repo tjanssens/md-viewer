@@ -12,15 +12,15 @@ import { FormsModule } from '@angular/forms';
       <textarea
         #ta
         [(ngModel)]="text"
-        placeholder="Schrijf je feedback…"
+        placeholder="Write your feedback…"
         rows="4"
         (keydown.escape)="onCancel()"
         (keydown.control.enter)="onSave()"
         (keydown.meta.enter)="onSave()">
       </textarea>
       <div class="popover-actions">
-        <button class="btn-cancel" (click)="onCancel()">Annuleren</button>
-        <button class="btn-save" (click)="onSave()" [disabled]="!text.trim()">Opslaan</button>
+        <button class="btn-cancel" (click)="onCancel()">Cancel</button>
+        <button class="btn-save" (click)="onSave()" [disabled]="!text.trim()">Save</button>
       </div>
     </div>
   `,

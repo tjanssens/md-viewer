@@ -12,19 +12,19 @@ import { Observable } from 'rxjs';
     <aside class="sidebar">
       <header class="sidebar-header">
         <h3>Feedback ({{ (items$ | async)?.length || 0 }})</h3>
-        <button class="close-btn" (click)="close.emit()" title="Sluiten">✕</button>
+        <button class="close-btn" (click)="close.emit()" title="Close">✕</button>
       </header>
 
       <div class="actions">
         <button class="copy-btn" (click)="onCopy()" [disabled]="!hasOpen((items$ | async) || [])">
-          📋 Kopieer alle feedback
+          📋 Copy all feedback
         </button>
         <div class="bulk-actions">
           <button (click)="onRemoveProcessed()" [disabled]="!hasStatus((items$ | async) || [], 'processed')">
-            Verwijder verwerkte
+            Remove processed
           </button>
           <button (click)="onRemoveOrphaned()" [disabled]="!hasStatus((items$ | async) || [], 'orphaned')">
-            Verwijder verweesde
+            Remove orphaned
           </button>
         </div>
       </div>
@@ -48,22 +48,22 @@ import { Observable } from 'rxjs';
                 class="edit-btn"
                 *ngIf="editingId !== item.id"
                 (click)="startEdit(item, $event)"
-                title="Bewerken">✏️</button>
+                title="Edit">✏️</button>
               <button
                 class="status-btn"
                 *ngIf="item.status !== 'processed' && editingId !== item.id"
                 (click)="$event.stopPropagation(); markProcessed(item)"
-                title="Markeer als verwerkt">✓</button>
+                title="Mark as processed">✓</button>
               <button
                 class="status-btn"
                 *ngIf="item.status === 'processed' && editingId !== item.id"
                 (click)="$event.stopPropagation(); markOpen(item)"
-                title="Markeer als open">↺</button>
+                title="Mark as open">↺</button>
               <button
                 class="delete-btn"
                 *ngIf="editingId !== item.id"
                 (click)="$event.stopPropagation(); remove(item)"
-                title="Verwijder">🗑️</button>
+                title="Delete">🗑️</button>
             </span>
           </div>
 
@@ -77,20 +77,20 @@ import { Observable } from 'rxjs';
               placeholder="Feedback…">
             </textarea>
             <div class="edit-actions">
-              <button class="btn-cancel" (click)="cancelEdit()">Annuleren</button>
-              <button class="btn-save" (click)="saveEdit(item)" [disabled]="!editingText.trim()">Opslaan</button>
+              <button class="btn-cancel" (click)="cancelEdit()">Cancel</button>
+              <button class="btn-save" (click)="saveEdit(item)" [disabled]="!editingText.trim()">Save</button>
             </div>
           </div>
 
           <div class="item-badges">
-            <span class="badge shifted" *ngIf="item.shifted && item.status !== 'orphaned'">📍 verschoven</span>
-            <span class="badge orphaned" *ngIf="item.status === 'orphaned'">⚠️ niet gevonden</span>
-            <span class="badge processed" *ngIf="item.status === 'processed'">✓ verwerkt</span>
+            <span class="badge shifted" *ngIf="item.shifted && item.status !== 'orphaned'">📍 shifted</span>
+            <span class="badge orphaned" *ngIf="item.status === 'orphaned'">⚠️ not found</span>
+            <span class="badge processed" *ngIf="item.status === 'processed'">✓ processed</span>
           </div>
         </div>
 
         <div class="empty" *ngIf="((items$ | async) || []).length === 0">
-          Geen feedback. Selecteer tekst in de viewer en klik "💬 Feedback toevoegen".
+          No feedback yet. Select text in the viewer and click "💬 Add feedback".
         </div>
       </div>
     </aside>
@@ -416,13 +416,13 @@ export class FeedbackSidebarComponent implements OnChanges, AfterViewInit {
     if (items.length === 0) return;
 
     const filename = this.getCurrentFilename();
-    const lines: string[] = [`# Feedback op \`${filename}\`\n`];
+    const lines: string[] = [`# Feedback on \`${filename}\`\n`];
     items.forEach((item, idx) => {
       lines.push(`## Feedback ${idx + 1}`);
       if (item.headingPath.length > 0) {
-        lines.push(`**Locatie:** ${item.headingPath.join(' › ')}`);
+        lines.push(`**Location:** ${item.headingPath.join(' › ')}`);
       }
-      lines.push(`**Geselecteerde tekst:**`);
+      lines.push(`**Selected text:**`);
       lines.push(`> ${item.selectedText.replace(/\n/g, '\n> ')}`);
       lines.push('');
       lines.push(`**Feedback:**`);

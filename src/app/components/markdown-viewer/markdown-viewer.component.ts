@@ -34,7 +34,7 @@ export interface OutlineHeading {
       [style.left.px]="selectionButtonLeft"
       (mousedown)="$event.preventDefault()"
       (click)="onFeedbackButtonClick()">
-      💬 Feedback toevoegen
+      💬 Add feedback
     </button>
   `,
   styles: [`

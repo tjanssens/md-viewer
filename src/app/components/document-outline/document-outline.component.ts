@@ -16,8 +16,8 @@ interface OutlineRow extends OutlineHeading {
   template: `
     <aside class="outline">
       <header class="outline-header">
-        <h3>Inhoud</h3>
-        <button class="close-btn" (click)="close.emit()" title="Sluiten">✕</button>
+        <h3>Outline</h3>
+        <button class="close-btn" (click)="close.emit()" title="Close">✕</button>
       </header>
       <div class="outline-list">
         <button
@@ -33,12 +33,12 @@ interface OutlineRow extends OutlineHeading {
           (click)="select.emit(row.id)"
           [title]="row.text">
           <span class="outline-text">{{ row.text }}</span>
-          <span class="feedback-badge" *ngIf="row.feedbackCount > 0" title="Feedback aanwezig">
+          <span class="feedback-badge" *ngIf="row.feedbackCount > 0" title="Feedback present">
             💬 {{ row.feedbackCount }}
           </span>
         </button>
         <div class="empty" *ngIf="rows.length === 0">
-          Geen koppen in dit document.
+          No headings in this document.
         </div>
       </div>
     </aside>
