@@ -1,12 +1,13 @@
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { FeedbackService, FeedbackItem } from '../../services/feedback.service';
 import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-feedback-sidebar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <aside class="sidebar">
       <header class="sidebar-header">
@@ -44,24 +45,42 @@ import { Observable } from 'rxjs';
             </span>
             <span class="item-actions">
               <button
+                class="edit-btn"
+                *ngIf="editingId !== item.id"
+                (click)="startEdit(item, $event)"
+                title="Bewerken">✏️</button>
+              <button
                 class="status-btn"
-                *ngIf="item.status !== 'processed'"
+                *ngIf="item.status !== 'processed' && editingId !== item.id"
                 (click)="$event.stopPropagation(); markProcessed(item)"
                 title="Markeer als verwerkt">✓</button>
               <button
                 class="status-btn"
-                *ngIf="item.status === 'processed'"
+                *ngIf="item.status === 'processed' && editingId !== item.id"
                 (click)="$event.stopPropagation(); markOpen(item)"
                 title="Markeer als open">↺</button>
               <button
                 class="delete-btn"
+                *ngIf="editingId !== item.id"
                 (click)="$event.stopPropagation(); remove(item)"
                 title="Verwijder">🗑️</button>
             </span>
           </div>
 
           <div class="item-snippet">"{{ item.selectedText | slice:0:60 }}{{ item.selectedText.length > 60 ? '…' : '' }}"</div>
-          <div class="item-feedback">{{ item.feedback }}</div>
+          <div class="item-feedback" *ngIf="editingId !== item.id">{{ item.feedback }}</div>
+          <div class="edit-block" *ngIf="editingId === item.id" (click)="$event.stopPropagation()">
+            <textarea
+              [(ngModel)]="editingText"
+              (keydown)="onEditKeydown($event, item)"
+              rows="4"
+              placeholder="Feedback…">
+            </textarea>
+            <div class="edit-actions">
+              <button class="btn-cancel" (click)="cancelEdit()">Annuleren</button>
+              <button class="btn-save" (click)="saveEdit(item)" [disabled]="!editingText.trim()">Opslaan</button>
+            </div>
+          </div>
 
           <div class="item-badges">
             <span class="badge shifted" *ngIf="item.shifted && item.status !== 'orphaned'">📍 verschoven</span>
@@ -243,6 +262,58 @@ import { Observable } from 'rxjs';
       color: var(--color-text-muted);
       font-size: 13px;
     }
+    .edit-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      padding: 2px 4px;
+      color: var(--color-text);
+    }
+    .edit-btn:hover {
+      background: var(--color-bg-elevated);
+      border-radius: 3px;
+    }
+    .edit-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .edit-block textarea {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      padding: 6px;
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: inherit;
+      font-size: 13px;
+      resize: vertical;
+    }
+    .edit-actions {
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+    .edit-actions button {
+      padding: 4px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      background: var(--color-bg);
+      color: var(--color-text);
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .edit-actions .btn-save {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+    .edit-actions .btn-save:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   `]
 })
 export class FeedbackSidebarComponent implements OnChanges, AfterViewInit {
@@ -253,6 +324,9 @@ export class FeedbackSidebarComponent implements OnChanges, AfterViewInit {
   @ViewChild('itemsContainer') itemsContainer?: ElementRef<HTMLDivElement>;
 
   items$: Observable<FeedbackItem[]>;
+
+  editingId: string | null = null;
+  editingText = '';
 
   constructor(private feedbackService: FeedbackService) {
     this.items$ = this.feedbackService.items$;
@@ -295,6 +369,34 @@ export class FeedbackSidebarComponent implements OnChanges, AfterViewInit {
 
   markOpen(item: FeedbackItem): void {
     this.feedbackService.update(item.id, { status: 'open' });
+  }
+
+  startEdit(item: FeedbackItem, event: MouseEvent): void {
+    event.stopPropagation();
+    this.editingId = item.id;
+    this.editingText = item.feedback;
+  }
+
+  saveEdit(item: FeedbackItem): void {
+    const text = this.editingText.trim();
+    if (text) {
+      this.feedbackService.update(item.id, { feedback: text });
+    }
+    this.editingId = null;
+    this.editingText = '';
+  }
+
+  cancelEdit(): void {
+    this.editingId = null;
+    this.editingText = '';
+  }
+
+  onEditKeydown(event: KeyboardEvent, item: FeedbackItem): void {
+    if (event.key === 'Escape') {
+      this.cancelEdit();
+    } else if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      this.saveEdit(item);
+    }
   }
 
   remove(item: FeedbackItem): void {
