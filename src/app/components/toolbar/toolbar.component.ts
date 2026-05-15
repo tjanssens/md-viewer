@@ -52,6 +52,13 @@ import { SettingsService, AppSettings, Theme } from '../../services/settings.ser
           </select>
         </div>
         <button
+          class="outline-toggle-btn"
+          (click)="toggleOutline.emit()"
+          [class.active]="outlineOpen"
+          title="Inhoudsopgave">
+          📑
+        </button>
+        <button
           class="feedback-toggle-btn"
           (click)="toggleFeedbackSidebar.emit()"
           [class.active]="feedbackSidebarOpen"
@@ -188,6 +195,24 @@ import { SettingsService, AppSettings, Theme } from '../../services/settings.ser
       border-color: var(--color-primary);
     }
 
+    .outline-toggle-btn {
+      background: none;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--color-text);
+    }
+    .outline-toggle-btn:hover {
+      background: var(--color-bg-elevated);
+    }
+    .outline-toggle-btn.active {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+
     .theme-selector {
       position: relative;
       display: inline-block;
@@ -256,6 +281,8 @@ export class ToolbarComponent implements OnInit {
   @Output() print = new EventEmitter<void>();
   @Input() feedbackSidebarOpen = false;
   @Output() toggleFeedbackSidebar = new EventEmitter<void>();
+  @Input() outlineOpen = false;
+  @Output() toggleOutline = new EventEmitter<void>();
 
   fonts: string[] = [];
   fontSizes = [12, 14, 16, 18, 20, 22, 24, 28, 32];

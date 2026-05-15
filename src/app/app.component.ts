@@ -13,6 +13,7 @@ import { FeedbackSidebarComponent } from './components/feedback-sidebar/feedback
 import { FeedbackService } from './services/feedback.service';
 import { ReloadToastComponent } from './components/reload-toast/reload-toast.component';
 import { ReloadConflictModalComponent } from './components/reload-conflict-modal/reload-conflict-modal.component';
+import { DocumentOutlineComponent } from './components/document-outline/document-outline.component';
 
 @Component({
   selector: 'app-root',
@@ -26,7 +27,8 @@ import { ReloadConflictModalComponent } from './components/reload-conflict-modal
     FeedbackPopoverComponent,
     FeedbackSidebarComponent,
     ReloadToastComponent,
-    ReloadConflictModalComponent
+    ReloadConflictModalComponent,
+    DocumentOutlineComponent
   ],
   template: `
     <div class="app-container">
@@ -34,17 +36,25 @@ import { ReloadConflictModalComponent } from './components/reload-conflict-modal
         [isEditMode]="isEditMode"
         [hasContent]="content.length > 0"
         [feedbackSidebarOpen]="feedbackSidebarOpen"
+        [outlineOpen]="outlineOpen"
         (toggleEdit)="toggleEditMode()"
         (save)="saveFile()"
         (saveAs)="saveFileAs()"
         (open)="openFile()"
         (print)="printFile()"
-        (toggleFeedbackSidebar)="toggleFeedbackSidebar()">
+        (toggleFeedbackSidebar)="toggleFeedbackSidebar()"
+        (toggleOutline)="toggleOutline()">
       </app-toolbar>
 
       <div class="main-content">
         <!-- View Mode -->
         <div *ngIf="!isEditMode" class="view-mode">
+          <app-document-outline
+            *ngIf="outlineOpen && viewerComponent"
+            [outline$]="viewerComponent.outline$"
+            (select)="onOutlineSelect($event)"
+            (close)="toggleOutline()">
+          </app-document-outline>
           <app-markdown-viewer
             [content]="content"
             (requestFeedback)="onRequestFeedback($event)"
@@ -220,6 +230,7 @@ export class AppComponent implements OnInit, OnDestroy {
   feedbackPopoverLeft = 0;
   feedbackPopoverSnippet = '';
   feedbackSidebarOpen = false;
+  outlineOpen = false;
   reloadToastVisible = false;
   reloadConflictVisible = false;
   private pendingExternalContent: string | null = null;
@@ -383,6 +394,14 @@ export class AppComponent implements OnInit, OnDestroy {
 
   toggleFeedbackSidebar(): void {
     this.feedbackSidebarOpen = !this.feedbackSidebarOpen;
+  }
+
+  toggleOutline(): void {
+    this.outlineOpen = !this.outlineOpen;
+  }
+
+  onOutlineSelect(id: string): void {
+    this.viewerComponent?.scrollToHeading(id);
   }
 
   onFeedbackScrollTo(id: string): void {
