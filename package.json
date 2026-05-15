@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "ng": "ng",
-    "start": "npm run build:electron && concurrently \"npm run watch:angular\" \"npm run start:electron\"",
+    "start": "npm run build:angular && npm run build:electron && concurrently \"npm run watch:angular\" \"npm run start:electron\"",
     "build:angular": "ng build --configuration production",
     "watch:angular": "ng build --watch --configuration development",
     "build:electron": "tsc -p tsconfig.electron.json",
