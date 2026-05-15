@@ -7,6 +7,7 @@ import { MarkdownEditorComponent } from './components/markdown-editor/markdown-e
 import { SplitPaneComponent } from './components/split-pane/split-pane.component';
 import { ElectronService } from './services/electron.service';
 import { SettingsService } from './services/settings.service';
+import { ThemeService } from './services/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -172,7 +173,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
   constructor(
     private electronService: ElectronService,
-    private settingsService: SettingsService
+    private settingsService: SettingsService,
+    private themeService: ThemeService
   ) {}
 
   ngOnInit(): void {
