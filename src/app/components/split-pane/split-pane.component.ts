@@ -43,7 +43,7 @@ import { CommonModule } from '@angular/common';
 
     .split-divider {
       width: 6px;
-      background: #e9ecef;
+      background: var(--color-border);
       cursor: col-resize;
       display: flex;
       align-items: center;
@@ -54,19 +54,19 @@ import { CommonModule } from '@angular/common';
 
     .split-divider:hover,
     .split-divider.dragging {
-      background: #dee2e6;
+      background: var(--color-border-strong);
     }
 
     .divider-handle {
       width: 2px;
       height: 40px;
-      background: #adb5bd;
+      background: var(--color-text-subtle);
       border-radius: 1px;
     }
 
     .split-divider:hover .divider-handle,
     .split-divider.dragging .divider-handle {
-      background: #6c757d;
+      background: var(--color-text-muted);
     }
   `]
 })
