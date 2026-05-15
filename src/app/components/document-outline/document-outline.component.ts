@@ -1,6 +1,7 @@
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { Subscription, combineLatest, Observable } from 'rxjs';
+import { combineLatest, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { FeedbackService, FeedbackItem } from '../../services/feedback.service';
 import { OutlineHeading } from '../markdown-viewer/markdown-viewer.component';
@@ -124,27 +125,24 @@ interface OutlineRow extends OutlineHeading {
     }
   `]
 })
-export class DocumentOutlineComponent implements OnInit, OnDestroy {
+export class DocumentOutlineComponent implements OnInit {
   @Input() outline$!: Observable<OutlineHeading[]>;
   @Output() select = new EventEmitter<string>();
   @Output() close = new EventEmitter<void>();
 
   rows: OutlineRow[] = [];
-  private subscription?: Subscription;
+  private destroyRef = inject(DestroyRef);
 
   constructor(private feedbackService: FeedbackService) {}
 
   ngOnInit(): void {
-    this.subscription = combineLatest([
+    combineLatest([
       this.outline$,
       this.feedbackService.items$
     ]).pipe(
-      map(([outline, items]) => this.buildRows(outline, items))
+      map(([outline, items]) => this.buildRows(outline, items)),
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe(rows => this.rows = rows);
-  }
-
-  ngOnDestroy(): void {
-    this.subscription?.unsubscribe();
   }
 
   private buildRows(outline: OutlineHeading[], items: FeedbackItem[]): OutlineRow[] {

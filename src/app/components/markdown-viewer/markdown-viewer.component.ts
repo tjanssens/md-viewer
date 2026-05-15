@@ -1,4 +1,5 @@
-import { Component, Input, ElementRef, ViewChild, OnChanges, SimpleChanges, Output, EventEmitter, AfterViewChecked } from '@angular/core';
+import { Component, Input, ElementRef, ViewChild, OnChanges, SimpleChanges, Output, EventEmitter, AfterViewChecked, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { BehaviorSubject } from 'rxjs';
 import { MarkdownService } from '../../services/markdown.service';
@@ -230,18 +231,24 @@ export class MarkdownViewerComponent implements OnChanges, AfterViewChecked {
     headingPath: string[];
   } | null = null;
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(
     private markdownService: MarkdownService,
     private settingsService: SettingsService,
     private feedbackService: FeedbackService
   ) {
-    this.settingsService.settings$.subscribe(settings => {
-      this.fontFamily = settings.fontFamily;
-      this.fontSize = settings.fontSize;
-    });
-    this.feedbackService.items$.subscribe(() => {
-      queueMicrotask(() => this.applyHighlights());
-    });
+    this.settingsService.settings$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(settings => {
+        this.fontFamily = settings.fontFamily;
+        this.fontSize = settings.fontSize;
+      });
+    this.feedbackService.items$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        queueMicrotask(() => this.applyHighlights());
+      });
   }
 
   ngOnChanges(changes: SimpleChanges): void {

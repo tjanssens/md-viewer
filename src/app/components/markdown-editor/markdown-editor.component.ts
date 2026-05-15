@@ -1,4 +1,5 @@
-import { Component, Input, Output, EventEmitter, ElementRef, ViewChild, OnChanges, SimpleChanges, AfterViewInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ElementRef, ViewChild, OnChanges, SimpleChanges, AfterViewInit, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SettingsService } from '../../services/settings.service';
@@ -106,11 +107,15 @@ export class MarkdownEditorComponent implements OnChanges, AfterViewInit {
   editorFontFamily = 'Consolas';
   editorFontSize = 14;
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(private settingsService: SettingsService) {
-    this.settingsService.settings$.subscribe(settings => {
-      this.editorFontFamily = settings.editorFontFamily;
-      this.editorFontSize = settings.editorFontSize;
-    });
+    this.settingsService.settings$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(settings => {
+        this.editorFontFamily = settings.editorFontFamily;
+        this.editorFontSize = settings.editorFontSize;
+      });
   }
 
   ngAfterViewInit(): void {
