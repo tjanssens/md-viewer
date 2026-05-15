@@ -2,12 +2,53 @@ name: Build and Release
 
 on:
   push:
+    branches:
+      - main
+      - master
     tags:
       - 'v*'
   workflow_dispatch:
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+      tag_name: ${{ steps.check.outputs.tag_name }}
+      release_needed: ${{ steps.check.outputs.release_needed }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Decide build + release
+        id: check
+        shell: bash
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            echo "tag_name=$TAG" >> $GITHUB_OUTPUT
+            echo "should_build=true" >> $GITHUB_OUTPUT
+            echo "release_needed=true" >> $GITHUB_OUTPUT
+            echo "Tag push: building $TAG"
+          else
+            VERSION="v$(node -p "require('./package.json').version")"
+            echo "tag_name=$VERSION" >> $GITHUB_OUTPUT
+            if git rev-parse "refs/tags/$VERSION" >/dev/null 2>&1; then
+              echo "Tag $VERSION already exists, skipping build"
+              echo "should_build=false" >> $GITHUB_OUTPUT
+              echo "release_needed=false" >> $GITHUB_OUTPUT
+            else
+              echo "Building new release $VERSION"
+              echo "should_build=true" >> $GITHUB_OUTPUT
+              echo "release_needed=true" >> $GITHUB_OUTPUT
+            fi
+          fi
+
   build:
+    needs: prepare
+    if: needs.prepare.outputs.should_build == 'true'
     strategy:
       matrix:
         include:
@@ -54,14 +95,17 @@ jobs:
           if-no-files-found: warn
 
   release:
-    needs: build
+    needs: [prepare, build]
+    if: needs.prepare.outputs.release_needed == 'true'
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
 
     permissions:
       contents: write
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4
         with:
@@ -77,9 +121,22 @@ jobs:
       - name: List release files
         run: ls -la release/
 
+      - name: Create tag (branch push only)
+        if: github.ref_type != 'tag'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ needs.prepare.outputs.tag_name }}
+          git push origin ${{ needs.prepare.outputs.tag_name }}
+
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ needs.prepare.outputs.tag_name }}
+          name: ${{ needs.prepare.outputs.tag_name }}
+          generate_release_notes: true
           files: |
             release/*.exe
             release/*.dmg
