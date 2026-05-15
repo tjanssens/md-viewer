@@ -14,6 +14,7 @@ import { FeedbackService } from './services/feedback.service';
 import { ReloadToastComponent } from './components/reload-toast/reload-toast.component';
 import { ReloadConflictModalComponent } from './components/reload-conflict-modal/reload-conflict-modal.component';
 import { DocumentOutlineComponent } from './components/document-outline/document-outline.component';
+import { CurrentFileService } from './services/current-file.service';
 
 @Component({
   selector: 'app-root',
@@ -251,7 +252,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private electronService: ElectronService,
     private settingsService: SettingsService,
     private themeService: ThemeService,
-    private feedbackService: FeedbackService
+    private feedbackService: FeedbackService,
+    private currentFileService: CurrentFileService
   ) {}
 
   ngOnInit(): void {
@@ -261,7 +263,7 @@ export class AppComponent implements OnInit, OnDestroy {
         this.content = data.content;
         this.currentFilePath = data.filePath;
         this.feedbackService.setCurrentFile(this.currentFilePath);
-        (window as any).__currentFilename = this.currentFilePath?.split(/[/\\]/).pop() || 'document.md';
+        this.currentFileService.setCurrentFile(this.currentFilePath);
         this.hasUnsavedChanges = false;
       })
     );
@@ -309,7 +311,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.content = result.content;
       this.currentFilePath = result.filePath;
       this.feedbackService.setCurrentFile(this.currentFilePath);
-      (window as any).__currentFilename = this.currentFilePath?.split(/[/\\]/).pop() || 'document.md';
+      this.currentFileService.setCurrentFile(this.currentFilePath);
       this.hasUnsavedChanges = false;
     }
   }

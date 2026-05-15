@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, Eleme
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FeedbackService, FeedbackItem } from '../../services/feedback.service';
+import { CurrentFileService } from '../../services/current-file.service';
 import { Observable } from 'rxjs';
 
 @Component({
@@ -325,7 +326,10 @@ export class FeedbackSidebarComponent implements OnChanges, AfterViewInit {
 
   editingState: { id: string; text: string } | null = null;
 
-  constructor(private feedbackService: FeedbackService) {
+  constructor(
+    private feedbackService: FeedbackService,
+    private currentFileService: CurrentFileService
+  ) {
     this.items$ = this.feedbackService.items$;
   }
 
@@ -432,6 +436,6 @@ export class FeedbackSidebarComponent implements OnChanges, AfterViewInit {
   }
 
   private getCurrentFilename(): string {
-    return (window as any).__currentFilename || 'document.md';
+    return this.currentFileService.getFilename();
   }
 }
