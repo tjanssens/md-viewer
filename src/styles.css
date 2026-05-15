@@ -152,3 +152,23 @@ html, body {
     content: none;
   }
 }
+
+/* Highlight.js light theme (GitHub) */
+body.theme-light .hljs { color: #24292e; }
+body.theme-light .hljs-comment, body.theme-light .hljs-quote { color: #6a737d; }
+body.theme-light .hljs-keyword, body.theme-light .hljs-selector-tag, body.theme-light .hljs-section { color: #d73a49; }
+body.theme-light .hljs-string, body.theme-light .hljs-attr, body.theme-light .hljs-template-tag { color: #032f62; }
+body.theme-light .hljs-number, body.theme-light .hljs-literal { color: #005cc5; }
+body.theme-light .hljs-built_in, body.theme-light .hljs-type { color: #e36209; }
+body.theme-light .hljs-function .hljs-title, body.theme-light .hljs-title.function_ { color: #6f42c1; }
+body.theme-light .hljs-variable, body.theme-light .hljs-name { color: #e36209; }
+
+/* Highlight.js dark theme (GitHub Dark) */
+body.theme-dark .hljs { color: #c9d1d9; }
+body.theme-dark .hljs-comment, body.theme-dark .hljs-quote { color: #8b949e; }
+body.theme-dark .hljs-keyword, body.theme-dark .hljs-selector-tag, body.theme-dark .hljs-section { color: #ff7b72; }
+body.theme-dark .hljs-string, body.theme-dark .hljs-attr, body.theme-dark .hljs-template-tag { color: #a5d6ff; }
+body.theme-dark .hljs-number, body.theme-dark .hljs-literal { color: #79c0ff; }
+body.theme-dark .hljs-built_in, body.theme-dark .hljs-type { color: #ffa657; }
+body.theme-dark .hljs-function .hljs-title, body.theme-dark .hljs-title.function_ { color: #d2a8ff; }
+body.theme-dark .hljs-variable, body.theme-dark .hljs-name { color: #ffa657; }
