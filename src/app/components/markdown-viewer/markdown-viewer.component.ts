@@ -22,7 +22,8 @@ import { SettingsService } from '../../services/settings.service';
       overflow-y: auto;
       padding: 32px 48px;
       line-height: 1.7;
-      color: #24292e;
+      color: var(--color-text);
+      background: var(--color-bg);
     }
 
     :host ::ng-deep h1 {
@@ -30,7 +31,8 @@ import { SettingsService } from '../../services/settings.service';
       font-weight: 600;
       margin: 0.67em 0;
       padding-bottom: 0.3em;
-      border-bottom: 1px solid #eaecef;
+      border-bottom: 1px solid var(--color-border);
+      color: var(--color-heading);
     }
 
     :host ::ng-deep h2 {
@@ -38,26 +40,24 @@ import { SettingsService } from '../../services/settings.service';
       font-weight: 600;
       margin: 1em 0 0.5em;
       padding-bottom: 0.3em;
-      border-bottom: 1px solid #eaecef;
+      border-bottom: 1px solid var(--color-border);
+      color: var(--color-heading);
     }
 
-    :host ::ng-deep h3 {
-      font-size: 1.25em;
+    :host ::ng-deep h3, :host ::ng-deep h4, :host ::ng-deep h5, :host ::ng-deep h6 {
       font-weight: 600;
       margin: 1em 0 0.5em;
+      color: var(--color-heading);
     }
 
-    :host ::ng-deep h4, :host ::ng-deep h5, :host ::ng-deep h6 {
-      font-weight: 600;
-      margin: 1em 0 0.5em;
-    }
+    :host ::ng-deep h3 { font-size: 1.25em; }
 
     :host ::ng-deep p {
       margin: 0 0 16px;
     }
 
     :host ::ng-deep a {
-      color: #0366d6;
+      color: var(--color-link);
       text-decoration: none;
     }
 
@@ -69,12 +69,12 @@ import { SettingsService } from '../../services/settings.service';
       font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
       font-size: 0.9em;
       padding: 0.2em 0.4em;
-      background-color: rgba(27, 31, 35, 0.05);
+      background-color: var(--color-code-bg);
       border-radius: 3px;
     }
 
     :host ::ng-deep pre {
-      background-color: #f6f8fa;
+      background-color: var(--color-pre-bg);
       border-radius: 6px;
       padding: 16px;
       overflow-x: auto;
@@ -91,8 +91,8 @@ import { SettingsService } from '../../services/settings.service';
     :host ::ng-deep blockquote {
       margin: 0 0 16px;
       padding: 0 1em;
-      color: #6a737d;
-      border-left: 4px solid #dfe2e5;
+      color: var(--color-blockquote);
+      border-left: 4px solid var(--color-border-strong);
     }
 
     :host ::ng-deep ul, :host ::ng-deep ol {
@@ -111,17 +111,17 @@ import { SettingsService } from '../../services/settings.service';
     }
 
     :host ::ng-deep th, :host ::ng-deep td {
-      border: 1px solid #dfe2e5;
+      border: 1px solid var(--color-border-strong);
       padding: 8px 12px;
     }
 
     :host ::ng-deep th {
-      background-color: #f6f8fa;
+      background-color: var(--color-bg-elevated);
       font-weight: 600;
     }
 
     :host ::ng-deep tr:nth-child(even) {
-      background-color: #f6f8fa;
+      background-color: var(--color-table-stripe);
     }
 
     :host ::ng-deep img {
@@ -131,13 +131,30 @@ import { SettingsService } from '../../services/settings.service';
 
     :host ::ng-deep hr {
       border: none;
-      border-top: 1px solid #eaecef;
+      border-top: 1px solid var(--color-border);
       margin: 24px 0;
     }
 
-    /* Highlight.js code styling */
     :host ::ng-deep .hljs {
       background: transparent;
+    }
+
+    :host ::ng-deep .feedback-highlight {
+      background-color: var(--color-feedback-highlight);
+      border-radius: 2px;
+      padding: 0 2px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    :host ::ng-deep .feedback-highlight.processed {
+      background-color: var(--color-feedback-highlight-processed);
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
+
+    :host ::ng-deep .feedback-highlight.flash {
+      background-color: var(--color-feedback-highlight-flash);
     }
   `]
 })
