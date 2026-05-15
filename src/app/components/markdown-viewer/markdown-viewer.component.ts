@@ -207,6 +207,7 @@ export class MarkdownViewerComponent implements OnChanges, AfterViewChecked {
   fontSize = 16;
 
   private needsHighlightApply = false;
+  private textNodeOffsets: Map<Node, number> | null = null;
 
   private outlineSubject = new BehaviorSubject<OutlineHeading[]>([]);
   outline$ = this.outlineSubject.asObservable();
@@ -255,6 +256,7 @@ export class MarkdownViewerComponent implements OnChanges, AfterViewChecked {
     if (changes['content']) {
       this.renderedContent = this.markdownService.parse(this.content);
       this.needsHighlightApply = true;
+      this.textNodeOffsets = null;
     }
 
     if (changes['scrollPercent'] && this.viewerRef) {
@@ -384,6 +386,7 @@ export class MarkdownViewerComponent implements OnChanges, AfterViewChecked {
   private applyHighlights(): void {
     if (!this.viewerRef) return;
     const root = this.viewerRef.nativeElement;
+    this.textNodeOffsets = null; // DOM mutations invalidate cache
 
     root.querySelectorAll('.feedback-highlight').forEach(el => {
       const parent = el.parentNode;
@@ -482,15 +485,16 @@ export class MarkdownViewerComponent implements OnChanges, AfterViewChecked {
   }
 
   private computeTextOffset(root: HTMLElement, node: Node, offset: number): number {
-    let total = 0;
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-    while (walker.nextNode()) {
-      const textNode = walker.currentNode as Text;
-      if (textNode === node) {
-        return total + offset;
+    if (!this.textNodeOffsets) {
+      this.textNodeOffsets = new Map<Node, number>();
+      let total = 0;
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+      while (walker.nextNode()) {
+        const textNode = walker.currentNode as Text;
+        this.textNodeOffsets.set(textNode, total);
+        total += textNode.data.length;
       }
-      total += textNode.data.length;
     }
-    return total;
+    return (this.textNodeOffsets.get(node) ?? 0) + offset;
   }
 }

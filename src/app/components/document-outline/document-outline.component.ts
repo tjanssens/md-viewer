@@ -146,11 +146,16 @@ export class DocumentOutlineComponent implements OnInit {
   }
 
   private buildRows(outline: OutlineHeading[], items: FeedbackItem[]): OutlineRow[] {
+    const countsByHeading = new Map<string, number>();
+    for (const item of items) {
+      if (item.status === 'orphaned') continue;
+      for (const heading of item.headingPath) {
+        countsByHeading.set(heading, (countsByHeading.get(heading) ?? 0) + 1);
+      }
+    }
     return outline.map(h => ({
       ...h,
-      feedbackCount: items.filter(item =>
-        item.status !== 'orphaned' && item.headingPath.includes(h.text)
-      ).length
+      feedbackCount: countsByHeading.get(h.text) ?? 0
     }));
   }
 }
