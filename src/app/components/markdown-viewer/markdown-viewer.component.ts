@@ -323,25 +323,18 @@ export class MarkdownViewerComponent implements OnChanges, AfterViewChecked {
       return;
     }
 
-    const selectedText = selection.toString();
+    const rootText = root.textContent || '';
+    const selectionStart = this.computeTextOffset(root, range.startContainer, range.startOffset);
+    const selectionEnd = this.computeTextOffset(root, range.endContainer, range.endOffset);
+    const selectedText = rootText.slice(selectionStart, selectionEnd);
     if (selectedText.trim().length === 0) {
       this.showSelectionButton = false;
       this.pendingSelection = null;
       return;
     }
 
-    const rootText = root.textContent || '';
-    const beforeRange = document.createRange();
-    beforeRange.selectNodeContents(root);
-    beforeRange.setEnd(range.startContainer, range.startOffset);
-    const beforeText = beforeRange.toString();
-    const selectionStart = beforeText.length;
-
     const contextBefore = rootText.slice(Math.max(0, selectionStart - 50), selectionStart);
-    const contextAfter = rootText.slice(
-      selectionStart + selectedText.length,
-      selectionStart + selectedText.length + 50
-    );
+    const contextAfter = rootText.slice(selectionEnd, selectionEnd + 50);
     const headingPath = getHeadingPath(range.startContainer, root);
 
     this.pendingSelection = { selectedText, contextBefore, contextAfter, headingPath };
@@ -469,5 +462,45 @@ export class MarkdownViewerComponent implements OnChanges, AfterViewChecked {
       const id = highlight.getAttribute('data-feedback-id');
       if (id) this.selectFeedback.emit(id);
     }
+  }
+
+  private computeTextOffset(root: HTMLElement, node: Node, offset: number): number {
+    let total = 0;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    while (walker.nextNode()) {
+      const textNode = walker.currentNode as Text;
+      if (textNode === node) {
+        return total + offset;
+      }
+      total += textNode.data.length;
+    }
+    // Fallback: node is een element (bv. selection ends precies op een element boundary)
+    // Walk descendant text nodes om de totale text length tot dat punt te berekenen.
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as Element;
+      const children = Array.from(el.childNodes).slice(0, offset);
+      let pre = 0;
+      for (const child of children) {
+        pre += (child.textContent || '').length;
+      }
+      // Calculate offset of `node` (the element) within root by walking textContent up to it
+      return this.computeElementStartOffset(root, el) + pre;
+    }
+    return total;
+  }
+
+  private computeElementStartOffset(root: HTMLElement, target: Element): number {
+    // Walk through root's text content order, accumulating length until we hit target.
+    let total = 0;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    while (walker.nextNode()) {
+      const textNode = walker.currentNode as Text;
+      // If textNode is inside target, we've reached it
+      if (target.contains(textNode)) {
+        return total;
+      }
+      total += textNode.data.length;
+    }
+    return total;
   }
 }
