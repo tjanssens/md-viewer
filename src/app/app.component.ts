@@ -11,6 +11,8 @@ import { ThemeService } from './services/theme.service';
 import { FeedbackPopoverComponent } from './components/feedback-popover/feedback-popover.component';
 import { FeedbackSidebarComponent } from './components/feedback-sidebar/feedback-sidebar.component';
 import { FeedbackService } from './services/feedback.service';
+import { ReloadToastComponent } from './components/reload-toast/reload-toast.component';
+import { ReloadConflictModalComponent } from './components/reload-conflict-modal/reload-conflict-modal.component';
 
 @Component({
   selector: 'app-root',
@@ -22,7 +24,9 @@ import { FeedbackService } from './services/feedback.service';
     MarkdownEditorComponent,
     SplitPaneComponent,
     FeedbackPopoverComponent,
-    FeedbackSidebarComponent
+    FeedbackSidebarComponent,
+    ReloadToastComponent,
+    ReloadConflictModalComponent
   ],
   template: `
     <div class="app-container">
@@ -93,6 +97,18 @@ import { FeedbackService } from './services/feedback.service';
         (save)="onFeedbackSave($event)"
         (cancel)="onFeedbackCancel()">
       </app-feedback-popover>
+
+      <app-reload-toast
+        *ngIf="reloadToastVisible"
+        (reload)="onReloadConfirm()"
+        (ignore)="onReloadIgnore()">
+      </app-reload-toast>
+
+      <app-reload-conflict-modal
+        *ngIf="reloadConflictVisible"
+        (loadFromDisk)="onConflictLoadFromDisk()"
+        (keepMine)="onConflictKeepMine()">
+      </app-reload-conflict-modal>
     </div>
   `,
   styles: [`
@@ -204,6 +220,9 @@ export class AppComponent implements OnInit, OnDestroy {
   feedbackPopoverLeft = 0;
   feedbackPopoverSnippet = '';
   feedbackSidebarOpen = false;
+  reloadToastVisible = false;
+  reloadConflictVisible = false;
+  private pendingExternalContent: string | null = null;
   @ViewChild(MarkdownViewerComponent) viewerComponent?: MarkdownViewerComponent;
   private pendingFeedback: {
     selectedText: string;
@@ -252,6 +271,17 @@ export class AppComponent implements OnInit, OnDestroy {
 
     this.subscriptions.push(
       this.electronService.menuPrint$.subscribe(() => this.printFile())
+    );
+
+    this.subscriptions.push(
+      this.electronService.fileChangedExternally$.subscribe(data => {
+        this.pendingExternalContent = data.content;
+        if (this.hasUnsavedChanges && this.isEditMode) {
+          this.reloadConflictVisible = true;
+        } else {
+          this.reloadToastVisible = true;
+        }
+      })
     );
   }
 
@@ -357,5 +387,33 @@ export class AppComponent implements OnInit, OnDestroy {
 
   onFeedbackScrollTo(id: string): void {
     this.viewerComponent?.scrollToFeedback(id);
+  }
+
+  onReloadConfirm(): void {
+    if (this.pendingExternalContent !== null) {
+      this.content = this.pendingExternalContent;
+      this.pendingExternalContent = null;
+      this.hasUnsavedChanges = false;
+    }
+    this.reloadToastVisible = false;
+  }
+
+  onReloadIgnore(): void {
+    this.pendingExternalContent = null;
+    this.reloadToastVisible = false;
+  }
+
+  onConflictLoadFromDisk(): void {
+    if (this.pendingExternalContent !== null) {
+      this.content = this.pendingExternalContent;
+      this.pendingExternalContent = null;
+      this.hasUnsavedChanges = false;
+    }
+    this.reloadConflictVisible = false;
+  }
+
+  onConflictKeepMine(): void {
+    this.pendingExternalContent = null;
+    this.reloadConflictVisible = false;
   }
 }
