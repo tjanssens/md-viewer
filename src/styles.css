@@ -88,9 +88,10 @@ html, body {
   background: var(--color-border-strong);
 }
 
-/* Selection color */
+/* Selection color — yellow with dark text so it stays readable in both themes */
 ::selection {
-  background: #b3d4fc;
+  background: #ffe066;
+  color: #1a1a1a;
 }
 
 /* Print styles */

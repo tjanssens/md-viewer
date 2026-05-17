@@ -86,12 +86,16 @@ import { SettingsService, AppSettings, Theme } from '../../services/settings.ser
       border-bottom: 1px solid var(--color-border);
       gap: 16px;
       flex-shrink: 0;
+      flex-wrap: wrap;
+      row-gap: 8px;
     }
 
     .toolbar-left, .toolbar-right {
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-wrap: wrap;
+      row-gap: 8px;
     }
 
     .btn {

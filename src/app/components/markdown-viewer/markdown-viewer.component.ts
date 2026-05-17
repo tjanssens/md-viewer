@@ -42,10 +42,13 @@ export interface OutlineHeading {
     .markdown-viewer {
       height: 100%;
       overflow-y: auto;
+      overflow-x: hidden;
       padding: 32px 48px;
       line-height: 1.7;
       color: var(--color-text);
       background: var(--color-bg);
+      overflow-wrap: break-word;
+      word-wrap: break-word;
     }
 
     :host ::ng-deep h1 {
