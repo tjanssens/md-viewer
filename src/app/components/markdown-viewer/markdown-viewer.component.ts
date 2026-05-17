@@ -42,10 +42,13 @@ export interface OutlineHeading {
     .markdown-viewer {
       height: 100%;
       overflow-y: auto;
+      overflow-x: hidden;
       padding: 32px 48px;
       line-height: 1.7;
       color: var(--color-text);
       background: var(--color-bg);
+      overflow-wrap: break-word;
+      word-wrap: break-word;
     }
 
     :host ::ng-deep h1 {
@@ -359,8 +362,15 @@ export class MarkdownViewerComponent implements OnChanges, AfterViewChecked {
     this.pendingSelection = { selectedText, contextBefore, contextAfter, headingPath };
 
     const rect = range.getBoundingClientRect();
-    this.selectionButtonTop = rect.top - 40;
-    this.selectionButtonLeft = rect.left + rect.width / 2 - 80;
+    const BUTTON_WIDTH = 160;
+    const BUTTON_HEIGHT = 32;
+    const MARGIN = 8;
+    const desiredTop = rect.top - BUTTON_HEIGHT - MARGIN;
+    this.selectionButtonTop = desiredTop >= MARGIN ? desiredTop : rect.bottom + MARGIN;
+    this.selectionButtonLeft = Math.min(
+      Math.max(MARGIN, rect.left + rect.width / 2 - BUTTON_WIDTH / 2),
+      window.innerWidth - BUTTON_WIDTH - MARGIN
+    );
     this.showSelectionButton = true;
   }
 
@@ -495,6 +505,31 @@ export class MarkdownViewerComponent implements OnChanges, AfterViewChecked {
         total += textNode.data.length;
       }
     }
-    return (this.textNodeOffsets.get(node) ?? 0) + offset;
+
+    if (node.nodeType === Node.TEXT_NODE) {
+      return (this.textNodeOffsets.get(node) ?? 0) + offset;
+    }
+
+    // Element-typed Range endpoint: offset is an index into childNodes.
+    // Triple-click and "select all" produce these. Resolve to the equivalent
+    // text-content offset so we can match against root.textContent.
+    const children = node.childNodes;
+    if (offset >= children.length) {
+      const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null);
+      let lastText: Text | null = null;
+      while (walker.nextNode()) lastText = walker.currentNode as Text;
+      if (lastText) {
+        return (this.textNodeOffsets.get(lastText) ?? 0) + lastText.data.length;
+      }
+      return 0;
+    }
+
+    const targetChild = children[offset];
+    if (targetChild.nodeType === Node.TEXT_NODE) {
+      return this.textNodeOffsets.get(targetChild) ?? 0;
+    }
+    const walker = document.createTreeWalker(targetChild, NodeFilter.SHOW_TEXT, null);
+    const firstText = walker.nextNode() as Text | null;
+    return firstText ? (this.textNodeOffsets.get(firstText) ?? 0) : 0;
   }
 }

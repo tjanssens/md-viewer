@@ -143,15 +143,19 @@ import { CurrentFileService } from './services/current-file.service';
     .view-mode {
       height: 100%;
       display: flex;
+      min-width: 0;
     }
     .edit-mode {
       height: 100%;
     }
     .full-viewer {
       flex: 1;
+      min-width: 0;
     }
     .full-viewer, .preview-viewer {
+      display: block;
       height: 100%;
+      min-width: 0;
     }
 
     .preview-viewer {
@@ -374,8 +378,18 @@ export class AppComponent implements OnInit, OnDestroy {
       headingPath: data.headingPath
     };
     this.feedbackPopoverSnippet = data.selectedText.slice(0, 80);
-    this.feedbackPopoverTop = data.rect.bottom + 8;
-    this.feedbackPopoverLeft = Math.max(8, data.rect.left);
+
+    const POPOVER_HEIGHT = 240;
+    const POPOVER_WIDTH = 320;
+    const MARGIN = 8;
+    const fitsBelow = data.rect.bottom + MARGIN + POPOVER_HEIGHT <= window.innerHeight - MARGIN;
+    this.feedbackPopoverTop = fitsBelow
+      ? data.rect.bottom + MARGIN
+      : Math.max(MARGIN, data.rect.top - MARGIN - POPOVER_HEIGHT);
+    this.feedbackPopoverLeft = Math.min(
+      Math.max(MARGIN, data.rect.left),
+      window.innerWidth - POPOVER_WIDTH - MARGIN
+    );
     this.feedbackPopoverVisible = true;
   }
 

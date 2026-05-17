@@ -12,15 +12,15 @@ import { FormsModule } from '@angular/forms';
       <textarea
         #ta
         [(ngModel)]="text"
-        placeholder="Write your feedback…"
+        placeholder="Write your feedback… (Enter to save, Shift+Enter for new line)"
         rows="4"
-        (keydown.escape)="onCancel()"
-        (keydown.control.enter)="onSave()"
-        (keydown.meta.enter)="onSave()">
+        (keydown)="onKeydown($event)">
       </textarea>
       <div class="popover-actions">
         <button class="btn-cancel" (click)="onCancel()">Cancel</button>
-        <button class="btn-save" (click)="onSave()" [disabled]="!text.trim()">Save</button>
+        <button class="btn-save" (click)="onSave()" [disabled]="!text.trim()">
+          Save <span class="kbd">Enter</span>
+        </button>
       </div>
     </div>
   `,
@@ -87,6 +87,17 @@ import { FormsModule } from '@angular/forms';
       opacity: 0.5;
       cursor: not-allowed;
     }
+    .kbd {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 6px;
+      font-size: 11px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      background: rgba(255, 255, 255, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 3px;
+      vertical-align: middle;
+    }
   `]
 })
 export class FeedbackPopoverComponent implements AfterViewInit {
@@ -101,6 +112,18 @@ export class FeedbackPopoverComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
     setTimeout(() => this.textareaRef.nativeElement.focus(), 0);
+  }
+
+  onKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.onCancel();
+      return;
+    }
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.onSave();
+    }
   }
 
   onSave(): void {

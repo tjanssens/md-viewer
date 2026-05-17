@@ -73,11 +73,13 @@ import { Observable } from 'rxjs';
               [(ngModel)]="edit.text"
               (keydown)="onEditKeydown($event, item)"
               rows="4"
-              placeholder="Feedback…">
+              placeholder="Feedback… (Enter to save, Shift+Enter for new line)">
             </textarea>
             <div class="edit-actions">
               <button class="btn-cancel" (click)="cancelEdit()">Cancel</button>
-              <button class="btn-save" (click)="saveEdit(item)" [disabled]="!edit.text.trim()">Save</button>
+              <button class="btn-save" (click)="saveEdit(item)" [disabled]="!edit.text.trim()">
+                Save <span class="kbd">Enter</span>
+              </button>
             </div>
           </div>
 
@@ -313,6 +315,17 @@ import { Observable } from 'rxjs';
       opacity: 0.5;
       cursor: not-allowed;
     }
+    .kbd {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 6px;
+      font-size: 11px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      background: rgba(255, 255, 255, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 3px;
+      vertical-align: middle;
+    }
   `]
 })
 export class FeedbackSidebarComponent implements OnChanges, AfterViewInit {
@@ -392,8 +405,12 @@ export class FeedbackSidebarComponent implements OnChanges, AfterViewInit {
 
   onEditKeydown(event: KeyboardEvent, item: FeedbackItem): void {
     if (event.key === 'Escape') {
+      event.preventDefault();
       this.cancelEdit();
-    } else if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      return;
+    }
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
       this.saveEdit(item);
     }
   }
