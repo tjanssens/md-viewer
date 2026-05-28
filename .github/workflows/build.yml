@@ -90,6 +90,7 @@ jobs:
           path: |
             release/*.exe
             release/*.dmg
+            release/*.blockmap
             release/*-mac.yml
             release/latest*.yml
           if-no-files-found: warn
@@ -140,5 +141,7 @@ jobs:
           files: |
             release/*.exe
             release/*.dmg
+            release/*.blockmap
+            release/latest.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

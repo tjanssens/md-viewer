@@ -30,6 +30,7 @@
     "@angular/platform-browser": "^17.3.0",
     "@angular/platform-browser-dynamic": "^17.3.0",
     "@angular/router": "^17.3.0",
+    "electron-updater": "^6.8.3",
     "highlight.js": "^11.9.0",
     "marked": "^12.0.0",
     "rxjs": "~7.8.0",
@@ -56,6 +57,13 @@
     "directories": {
       "output": "release"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "tjanssens",
+        "repo": "md-viewer"
+      }
+    ],
     "files": [
       "dist/**/*",
       "package.json"

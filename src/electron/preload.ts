@@ -40,6 +40,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('file-changed-externally', (_event, data) => callback(data));
   },
 
+  // Updates
+  checkForUpdates: () => ipcRenderer.invoke('updater:check'),
+  quitAndInstall: () => ipcRenderer.invoke('updater:quit-and-install'),
+  openReleasePage: (url?: string) => ipcRenderer.invoke('updater:open-release', url),
+  onUpdateAvailable: (callback: (data: { version: string; releaseUrl: string }) => void) => {
+    ipcRenderer.on('update-available', (_event, data) => callback(data));
+  },
+  onUpdateDownloaded: (callback: (data: { version: string }) => void) => {
+    ipcRenderer.on('update-downloaded', (_event, data) => callback(data));
+  },
+
   // Remove listeners
   removeAllListeners: (channel: string) => {
     ipcRenderer.removeAllListeners(channel);
@@ -62,6 +73,11 @@ declare global {
       onMenuToggleEdit: (callback: () => void) => void;
       onMenuPrint: (callback: () => void) => void;
       onFileChangedExternally: (callback: (data: { filePath: string; content: string }) => void) => void;
+      checkForUpdates: () => Promise<void>;
+      quitAndInstall: () => Promise<void>;
+      openReleasePage: (url?: string) => Promise<void>;
+      onUpdateAvailable: (callback: (data: { version: string; releaseUrl: string }) => void) => void;
+      onUpdateDownloaded: (callback: (data: { version: string }) => void) => void;
       removeAllListeners: (channel: string) => void;
     };
   }

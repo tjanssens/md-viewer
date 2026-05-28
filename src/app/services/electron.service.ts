@@ -18,6 +18,8 @@ export class ElectronService {
   private menuOpen = new Subject<void>();
   private menuToggleEdit = new Subject<void>();
   private menuPrint = new Subject<void>();
+  private updateAvailable = new Subject<{ version: string; releaseUrl: string }>();
+  private updateDownloaded = new Subject<{ version: string }>();
 
   fileOpened$ = this.fileOpened.asObservable();
   menuSave$ = this.menuSave.asObservable();
@@ -25,6 +27,8 @@ export class ElectronService {
   menuOpen$ = this.menuOpen.asObservable();
   menuToggleEdit$ = this.menuToggleEdit.asObservable();
   menuPrint$ = this.menuPrint.asObservable();
+  updateAvailable$ = this.updateAvailable.asObservable();
+  updateDownloaded$ = this.updateDownloaded.asObservable();
 
   constructor(private ngZone: NgZone) {
     this.initListeners();
@@ -58,6 +62,14 @@ export class ElectronService {
 
       window.electronAPI.onFileChangedExternally((data) => {
         this.ngZone.run(() => this.fileChangedExternally.next(data));
+      });
+
+      window.electronAPI.onUpdateAvailable((data) => {
+        this.ngZone.run(() => this.updateAvailable.next(data));
+      });
+
+      window.electronAPI.onUpdateDownloaded((data) => {
+        this.ngZone.run(() => this.updateDownloaded.next(data));
       });
     }
   }
@@ -99,5 +111,23 @@ export class ElectronService {
       return await window.electronAPI.getSystemFonts();
     }
     return ['Arial', 'Times New Roman', 'Courier New', 'Georgia', 'Verdana'];
+  }
+
+  async checkForUpdates(): Promise<void> {
+    if (this.isElectron()) {
+      await window.electronAPI.checkForUpdates();
+    }
+  }
+
+  async quitAndInstall(): Promise<void> {
+    if (this.isElectron()) {
+      await window.electronAPI.quitAndInstall();
+    }
+  }
+
+  async openReleasePage(url?: string): Promise<void> {
+    if (this.isElectron()) {
+      await window.electronAPI.openReleasePage(url);
+    }
   }
 }

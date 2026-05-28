@@ -12,6 +12,11 @@ export interface ElectronAPI {
   onMenuToggleEdit: (callback: () => void) => void;
   onMenuPrint: (callback: () => void) => void;
   onFileChangedExternally: (callback: (data: { filePath: string; content: string }) => void) => void;
+  checkForUpdates: () => Promise<void>;
+  quitAndInstall: () => Promise<void>;
+  openReleasePage: (url?: string) => Promise<void>;
+  onUpdateAvailable: (callback: (data: { version: string; releaseUrl: string }) => void) => void;
+  onUpdateDownloaded: (callback: (data: { version: string }) => void) => void;
   removeAllListeners: (channel: string) => void;
 }
 

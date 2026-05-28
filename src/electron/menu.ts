@@ -1,4 +1,5 @@
 import { Menu, BrowserWindow, MenuItemConstructorOptions } from 'electron';
+import { checkForUpdates } from './updater';
 
 export function createMenu(mainWindow: BrowserWindow): Menu {
   const isMac = process.platform === 'darwin';
@@ -124,6 +125,13 @@ export function createMenu(mainWindow: BrowserWindow): Menu {
     {
       role: 'help' as const,
       submenu: [
+        {
+          label: 'Check for Updates...',
+          click: () => {
+            checkForUpdates(false);
+          }
+        },
+        { type: 'separator' as const },
         {
           label: 'About MD Viewer',
           click: async () => {

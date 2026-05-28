@@ -14,6 +14,7 @@ import { FeedbackService } from './services/feedback.service';
 import { ReloadToastComponent } from './components/reload-toast/reload-toast.component';
 import { ReloadConflictModalComponent } from './components/reload-conflict-modal/reload-conflict-modal.component';
 import { DocumentOutlineComponent } from './components/document-outline/document-outline.component';
+import { UpdateBannerComponent } from './components/update-banner/update-banner.component';
 import { CurrentFileService } from './services/current-file.service';
 
 @Component({
@@ -29,7 +30,8 @@ import { CurrentFileService } from './services/current-file.service';
     FeedbackSidebarComponent,
     ReloadToastComponent,
     ReloadConflictModalComponent,
-    DocumentOutlineComponent
+    DocumentOutlineComponent,
+    UpdateBannerComponent
   ],
   template: `
     <div class="app-container">
@@ -122,6 +124,14 @@ import { CurrentFileService } from './services/current-file.service';
         (loadFromDisk)="onConflictLoadFromDisk()"
         (keepMine)="onConflictKeepMine()">
       </app-reload-conflict-modal>
+
+      <app-update-banner
+        *ngIf="updateBannerVisible"
+        [version]="updateVersion"
+        [mode]="updateMode"
+        (action)="onUpdateAction()"
+        (dismiss)="onUpdateDismiss()">
+      </app-update-banner>
     </div>
   `,
   styles: [`
@@ -241,6 +251,10 @@ export class AppComponent implements OnInit, OnDestroy {
   outlineOpen = false;
   reloadToastVisible = false;
   reloadConflictVisible = false;
+  updateBannerVisible = false;
+  updateVersion = '';
+  updateMode: 'available' | 'downloaded' = 'available';
+  private updateReleaseUrl = '';
   private pendingExternalContent: string | null = null;
   @ViewChild(MarkdownViewerComponent) viewerComponent?: MarkdownViewerComponent;
   private pendingFeedback: {
@@ -301,6 +315,25 @@ export class AppComponent implements OnInit, OnDestroy {
         } else {
           this.reloadToastVisible = true;
         }
+      })
+    );
+
+    // macOS: a newer release exists, point the user to the download.
+    this.subscriptions.push(
+      this.electronService.updateAvailable$.subscribe(data => {
+        this.updateVersion = data.version;
+        this.updateReleaseUrl = data.releaseUrl;
+        this.updateMode = 'available';
+        this.updateBannerVisible = true;
+      })
+    );
+
+    // Windows: update downloaded in the background, offer a restart.
+    this.subscriptions.push(
+      this.electronService.updateDownloaded$.subscribe(data => {
+        this.updateVersion = data.version;
+        this.updateMode = 'downloaded';
+        this.updateBannerVisible = true;
       })
     );
   }
@@ -460,5 +493,18 @@ export class AppComponent implements OnInit, OnDestroy {
   onConflictKeepMine(): void {
     this.pendingExternalContent = null;
     this.reloadConflictVisible = false;
+  }
+
+  onUpdateAction(): void {
+    if (this.updateMode === 'downloaded') {
+      this.electronService.quitAndInstall();
+    } else {
+      this.electronService.openReleasePage(this.updateReleaseUrl);
+    }
+    this.updateBannerVisible = false;
+  }
+
+  onUpdateDismiss(): void {
+    this.updateBannerVisible = false;
   }
 }

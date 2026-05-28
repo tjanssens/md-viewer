@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { createMenu } from './menu';
 import { shouldReportChange } from './file-watcher-logic';
+import { initUpdater } from './updater';
 
 let mainWindow: BrowserWindow | null = null;
 let currentFilePath: string | null = null;
@@ -49,6 +50,9 @@ function createWindow(): void {
   // Set up menu
   const menu = createMenu(mainWindow);
   Menu.setApplicationMenu(menu);
+
+  // Wire up update checking (auto-update on Windows, notify on macOS)
+  initUpdater(mainWindow);
 }
 
 function stopWatcher(): void {
