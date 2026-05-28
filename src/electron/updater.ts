@@ -5,8 +5,28 @@ const REPO_OWNER = 'tjanssens';
 const REPO_NAME = 'md-viewer';
 const RELEASES_PAGE = `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest`;
 
+type UpdateState =
+  | 'checking'
+  | 'not-available'
+  | 'available'
+  | 'downloading'
+  | 'downloaded'
+  | 'error';
+
+interface UpdateStatus {
+  state: UpdateState;
+  version?: string;
+  percent?: number;
+  message?: string;
+  releaseUrl?: string;
+  mode?: 'win' | 'mac';
+}
+
 let mainWindowRef: BrowserWindow | null = null;
 let winListenersBound = false;
+let checkSilent = true;
+const logBuffer: string[] = [];
+const LOG_LIMIT = 300;
 
 export function initUpdater(mainWindow: BrowserWindow): void {
   mainWindowRef = mainWindow;
@@ -15,16 +35,20 @@ export function initUpdater(mainWindow: BrowserWindow): void {
 
   ipcMain.handle('updater:quit-and-install', () => {
     try {
+      log('User requested restart & install.');
       const { autoUpdater } = require('electron-updater');
       autoUpdater.quitAndInstall();
     } catch (error) {
-      console.error('quitAndInstall failed:', error);
+      log('quitAndInstall failed: ' + String(error));
     }
   });
 
   ipcMain.handle('updater:open-release', (_event, url?: string) => {
     return shell.openExternal(url || RELEASES_PAGE);
   });
+
+  ipcMain.handle('updater:get-logs', () => logBuffer.slice());
+  ipcMain.handle('updater:get-version', () => app.getVersion());
 
   // Check shortly after launch so it never blocks window startup.
   setTimeout(() => checkForUpdates(true), 4000);
@@ -36,68 +60,132 @@ function send(channel: string, payload: unknown): void {
   }
 }
 
+function log(line: string): void {
+  const stamped = `[${new Date().toISOString().slice(11, 19)}] ${line}`;
+  // eslint-disable-next-line no-console
+  console.log('[updater]', line);
+  logBuffer.push(stamped);
+  if (logBuffer.length > LOG_LIMIT) logBuffer.shift();
+  send('update-log', stamped);
+}
+
+// Non-actionable states (checking / up-to-date / error) are only surfaced in the
+// UI when the user explicitly triggered the check. They are always logged.
+function sendStatus(status: UpdateStatus): void {
+  const quiet =
+    status.state === 'checking' ||
+    status.state === 'not-available' ||
+    status.state === 'error';
+  if (checkSilent && quiet) return;
+  send('update-status', status);
+}
+
 export async function checkForUpdates(silent: boolean): Promise<void> {
+  checkSilent = silent;
   if (process.platform === 'darwin') {
-    await checkMacUpdate(silent);
+    await checkMacUpdate();
   } else {
-    checkWinUpdate(silent);
+    checkWinUpdate();
+  }
+}
+
+// electron-updater logger sink → forwarded to the diagnostics panel.
+const updaterLogger = {
+  info: (m: unknown) => log('info: ' + stringify(m)),
+  warn: (m: unknown) => log('warn: ' + stringify(m)),
+  error: (m: unknown) => log('error: ' + stringify(m)),
+  debug: (_m: unknown) => {}
+};
+
+function stringify(m: unknown): string {
+  if (m instanceof Error) return m.stack || m.message;
+  if (typeof m === 'string') return m;
+  try {
+    return JSON.stringify(m);
+  } catch {
+    return String(m);
   }
 }
 
 // Windows: full auto-update via electron-updater (downloads in the background,
 // then the renderer offers a restart).
-function checkWinUpdate(silent: boolean): void {
+function checkWinUpdate(): void {
+  sendStatus({ state: 'checking' });
+  log(`Checking for updates (Windows). Current version: ${app.getVersion()}`);
+
   if (!app.isPackaged) {
-    if (!silent) send('update-not-available', { reason: 'dev' });
+    log('App is not packaged (dev build) — electron-updater is disabled here.');
+    sendStatus({ state: 'not-available', version: app.getVersion(), message: 'Dev build' });
     return;
   }
 
   try {
     const { autoUpdater } = require('electron-updater');
     autoUpdater.autoDownload = true;
+    autoUpdater.logger = updaterLogger;
 
     if (!winListenersBound) {
       winListenersBound = true;
-      autoUpdater.on('update-downloaded', (info: { version: string }) => {
-        send('update-downloaded', { version: info.version });
+
+      autoUpdater.on('checking-for-update', () => {
+        log('Contacting GitHub for update metadata (latest.yml)…');
+      });
+      autoUpdater.on('update-available', (info: { version: string }) => {
+        log(`Update available: ${info.version}. Downloading…`);
+        sendStatus({ state: 'downloading', version: info.version, percent: 0, mode: 'win' });
       });
       autoUpdater.on('update-not-available', () => {
-        send('update-not-available', {});
+        log('Server reports no newer version — you are up to date.');
+        sendStatus({ state: 'not-available', version: app.getVersion() });
+      });
+      autoUpdater.on('download-progress', (p: { percent: number }) => {
+        sendStatus({ state: 'downloading', percent: Math.round(p.percent), mode: 'win' });
+      });
+      autoUpdater.on('update-downloaded', (info: { version: string }) => {
+        log(`Update ${info.version} downloaded and ready to install.`);
+        sendStatus({ state: 'downloaded', version: info.version, mode: 'win' });
       });
       autoUpdater.on('error', (err: Error) => {
-        console.error('Updater error:', err);
-        send('update-error', { message: String(err?.message || err) });
+        log('ERROR: ' + (err?.stack || err?.message || String(err)));
+        sendStatus({ state: 'error', message: String(err?.message || err) });
       });
     }
 
     autoUpdater.checkForUpdates().catch((err: Error) => {
-      console.error('checkForUpdates failed:', err);
-      if (!silent) send('update-error', { message: String(err?.message || err) });
+      log('checkForUpdates() rejected: ' + (err?.stack || String(err)));
+      sendStatus({ state: 'error', message: String(err?.message || err) });
     });
   } catch (error) {
-    console.error('electron-updater unavailable:', error);
-    if (!silent) send('update-error', { message: String(error) });
+    log('Failed to load electron-updater: ' + String(error));
+    sendStatus({ state: 'error', message: String(error) });
   }
 }
 
 // macOS: notify-only. Builds here are unsigned, so we compare the latest
 // GitHub release against the running version and point the user to the download.
-async function checkMacUpdate(silent: boolean): Promise<void> {
+async function checkMacUpdate(): Promise<void> {
+  sendStatus({ state: 'checking' });
+  log(`Checking for updates (macOS via GitHub API). Current version: ${app.getVersion()}`);
   try {
     const release = await fetchLatestRelease();
     const latest = String(release?.tag_name || '').replace(/^v/, '');
     const current = app.getVersion();
+    log(`Latest published release: ${latest || '(none)'}`);
     if (latest && isNewer(latest, current)) {
-      send('update-available', {
+      log(`Newer version ${latest} available.`);
+      sendStatus({
+        state: 'available',
         version: latest,
-        releaseUrl: release.html_url || RELEASES_PAGE
+        releaseUrl: release.html_url || RELEASES_PAGE,
+        mode: 'mac'
       });
-    } else if (!silent) {
-      send('update-not-available', {});
+    } else {
+      log('You are up to date.');
+      sendStatus({ state: 'not-available', version: current });
     }
   } catch (error) {
-    console.error('macOS update check failed:', error);
-    if (!silent) send('update-error', { message: String(error) });
+    log('ERROR: ' + String(error));
+    sendStatus({ state: 'error', message: String(error) });
   }
 }
 

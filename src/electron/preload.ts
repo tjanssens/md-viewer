@@ -1,5 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
+interface UpdateStatus {
+  state: 'checking' | 'not-available' | 'available' | 'downloading' | 'downloaded' | 'error';
+  version?: string;
+  percent?: number;
+  message?: string;
+  releaseUrl?: string;
+  mode?: 'win' | 'mac';
+}
+
 // Expose protected methods to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
   // File operations
@@ -44,11 +53,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   checkForUpdates: () => ipcRenderer.invoke('updater:check'),
   quitAndInstall: () => ipcRenderer.invoke('updater:quit-and-install'),
   openReleasePage: (url?: string) => ipcRenderer.invoke('updater:open-release', url),
-  onUpdateAvailable: (callback: (data: { version: string; releaseUrl: string }) => void) => {
-    ipcRenderer.on('update-available', (_event, data) => callback(data));
+  getUpdateLogs: () => ipcRenderer.invoke('updater:get-logs'),
+  getAppVersion: () => ipcRenderer.invoke('updater:get-version'),
+  onUpdateStatus: (callback: (data: UpdateStatus) => void) => {
+    ipcRenderer.on('update-status', (_event, data) => callback(data));
   },
-  onUpdateDownloaded: (callback: (data: { version: string }) => void) => {
-    ipcRenderer.on('update-downloaded', (_event, data) => callback(data));
+  onUpdateLog: (callback: (line: string) => void) => {
+    ipcRenderer.on('update-log', (_event, line) => callback(line));
   },
 
   // Remove listeners
@@ -76,8 +87,10 @@ declare global {
       checkForUpdates: () => Promise<void>;
       quitAndInstall: () => Promise<void>;
       openReleasePage: (url?: string) => Promise<void>;
-      onUpdateAvailable: (callback: (data: { version: string; releaseUrl: string }) => void) => void;
-      onUpdateDownloaded: (callback: (data: { version: string }) => void) => void;
+      getUpdateLogs: () => Promise<string[]>;
+      getAppVersion: () => Promise<string>;
+      onUpdateStatus: (callback: (data: UpdateStatus) => void) => void;
+      onUpdateLog: (callback: (line: string) => void) => void;
       removeAllListeners: (channel: string) => void;
     };
   }

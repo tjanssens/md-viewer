@@ -1,4 +1,13 @@
 // Type definitions for Electron API exposed via preload
+export interface UpdateStatus {
+  state: 'checking' | 'not-available' | 'available' | 'downloading' | 'downloaded' | 'error';
+  version?: string;
+  percent?: number;
+  message?: string;
+  releaseUrl?: string;
+  mode?: 'win' | 'mac';
+}
+
 export interface ElectronAPI {
   openFileDialog: () => Promise<{ filePath: string; content: string } | null>;
   saveFile: (content: string) => Promise<boolean>;
@@ -15,8 +24,10 @@ export interface ElectronAPI {
   checkForUpdates: () => Promise<void>;
   quitAndInstall: () => Promise<void>;
   openReleasePage: (url?: string) => Promise<void>;
-  onUpdateAvailable: (callback: (data: { version: string; releaseUrl: string }) => void) => void;
-  onUpdateDownloaded: (callback: (data: { version: string }) => void) => void;
+  getUpdateLogs: () => Promise<string[]>;
+  getAppVersion: () => Promise<string>;
+  onUpdateStatus: (callback: (data: UpdateStatus) => void) => void;
+  onUpdateLog: (callback: (line: string) => void) => void;
   removeAllListeners: (channel: string) => void;
 }
 

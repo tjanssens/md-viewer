@@ -14,8 +14,9 @@ import { FeedbackService } from './services/feedback.service';
 import { ReloadToastComponent } from './components/reload-toast/reload-toast.component';
 import { ReloadConflictModalComponent } from './components/reload-conflict-modal/reload-conflict-modal.component';
 import { DocumentOutlineComponent } from './components/document-outline/document-outline.component';
-import { UpdateBannerComponent } from './components/update-banner/update-banner.component';
+import { UpdateStatusComponent } from './components/update-status/update-status.component';
 import { CurrentFileService } from './services/current-file.service';
+import { UpdateStatus } from './electron.d';
 
 @Component({
   selector: 'app-root',
@@ -31,7 +32,7 @@ import { CurrentFileService } from './services/current-file.service';
     ReloadToastComponent,
     ReloadConflictModalComponent,
     DocumentOutlineComponent,
-    UpdateBannerComponent
+    UpdateStatusComponent
   ],
   template: `
     <div class="app-container">
@@ -125,13 +126,14 @@ import { CurrentFileService } from './services/current-file.service';
         (keepMine)="onConflictKeepMine()">
       </app-reload-conflict-modal>
 
-      <app-update-banner
-        *ngIf="updateBannerVisible"
-        [version]="updateVersion"
-        [mode]="updateMode"
+      <app-update-status
+        *ngIf="updatePanelVisible"
+        [status]="updateStatus"
+        [logs]="updateLogs"
         (action)="onUpdateAction()"
+        (checkAgain)="checkForUpdates()"
         (dismiss)="onUpdateDismiss()">
-      </app-update-banner>
+      </app-update-status>
     </div>
   `,
   styles: [`
@@ -251,10 +253,9 @@ export class AppComponent implements OnInit, OnDestroy {
   outlineOpen = false;
   reloadToastVisible = false;
   reloadConflictVisible = false;
-  updateBannerVisible = false;
-  updateVersion = '';
-  updateMode: 'available' | 'downloaded' = 'available';
-  private updateReleaseUrl = '';
+  updatePanelVisible = false;
+  updateStatus: UpdateStatus = { state: 'checking' };
+  updateLogs: string[] = [];
   private pendingExternalContent: string | null = null;
   @ViewChild(MarkdownViewerComponent) viewerComponent?: MarkdownViewerComponent;
   private pendingFeedback: {
@@ -318,24 +319,24 @@ export class AppComponent implements OnInit, OnDestroy {
       })
     );
 
-    // macOS: a newer release exists, point the user to the download.
+    // Update lifecycle: checking / available / downloading / downloaded / error.
     this.subscriptions.push(
-      this.electronService.updateAvailable$.subscribe(data => {
-        this.updateVersion = data.version;
-        this.updateReleaseUrl = data.releaseUrl;
-        this.updateMode = 'available';
-        this.updateBannerVisible = true;
+      this.electronService.updateStatus$.subscribe(status => {
+        this.updateStatus = status;
+        this.updatePanelVisible = true;
       })
     );
 
-    // Windows: update downloaded in the background, offer a restart.
     this.subscriptions.push(
-      this.electronService.updateDownloaded$.subscribe(data => {
-        this.updateVersion = data.version;
-        this.updateMode = 'downloaded';
-        this.updateBannerVisible = true;
+      this.electronService.updateLog$.subscribe(line => {
+        this.updateLogs = [...this.updateLogs, line].slice(-300);
       })
     );
+
+    // Preload any log lines produced during the startup check.
+    this.electronService.getUpdateLogs().then(logs => {
+      if (logs.length) this.updateLogs = logs;
+    });
   }
 
   ngOnDestroy(): void {
@@ -496,15 +497,19 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onUpdateAction(): void {
-    if (this.updateMode === 'downloaded') {
+    if (this.updateStatus.state === 'downloaded') {
       this.electronService.quitAndInstall();
-    } else {
-      this.electronService.openReleasePage(this.updateReleaseUrl);
+    } else if (this.updateStatus.state === 'available') {
+      this.electronService.openReleasePage(this.updateStatus.releaseUrl);
     }
-    this.updateBannerVisible = false;
+    this.updatePanelVisible = false;
+  }
+
+  checkForUpdates(): void {
+    this.electronService.checkForUpdates();
   }
 
   onUpdateDismiss(): void {
-    this.updateBannerVisible = false;
+    this.updatePanelVisible = false;
   }
 }
