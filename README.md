@@ -7,62 +7,49 @@ A modern Markdown viewer and editor for Windows and macOS.
 **[Download Latest Release](https://github.com/tjanssens/md-viewer/releases/latest)**
 
 | Platform | Download |
-|----------|----------|
+| --- | --- |
 | Windows | [MD Viewer Setup 1.0.0.exe](https://github.com/tjanssens/md-viewer/releases/download/v1.0.0/MD.Viewer.Setup.1.0.0.exe) |
 | macOS | [MD Viewer-1.0.0-arm64.dmg](https://github.com/tjanssens/md-viewer/releases/download/v1.0.0/MD.Viewer-1.0.0-arm64.dmg) |
 
 ## Features
 
-- **View Mode**: Beautiful rendering of Markdown files with syntax highlighting
-- **Edit Mode**: Split-pane editor with live preview and synchronized scrolling
-- **Font Selection**: Choose your preferred font and size for reading
-- **Dark Mode**: Auto (follows system) / Light / Dark via 🌓 in the toolbar — the entire UI including syntax highlighting follows the theme
-- **Outline panel** (📑): Toggleable left panel listing every H1–H6 heading from the document, indented by level. Click a heading to scroll the viewer to it. A 💬 badge next to a heading shows how many feedback items live somewhere in that section
-- **Feedback annotations**: Select text in view mode → "💬 Add feedback" → write your note. Open the sidebar (💬 in toolbar) for the list. Click an item to scroll to its position in the document; click a yellow highlight in the document to jump to the matching sidebar item. The ✏️ button edits an item inline. **Copy all feedback** puts a Claude-friendly markdown block on the clipboard with the heading path as locator. Items survive small document edits via exact / fuzzy anchor matching; items whose text has disappeared get a *not found* badge. Mark items as processed (✓) and bulk-remove processed or orphaned items
-- **Auto-reload on external change**: When the open file is modified on disk, a toast appears with **Reload / Dismiss**. In edit mode with unsaved changes you get a conflict modal that lets you choose between **Load file from disk** and **Keep my version**
-- **File Association**: Double-click .md files to open them directly
-- **Native Menus**: Full keyboard shortcuts support (Ctrl/Cmd+O, S, E)
+- View mode with Markdown rendering and syntax highlighting.
+- Edit mode with a split editor and live preview.
+- Font selection for reader and editor comfort.
+- Theme selection: auto, light, and dark.
+- Document outline with heading navigation and feedback counts.
+- Feedback annotations with copy, edit, processed, and orphaned states.
+- Auto-reload prompts when the open file changes on disk.
+- File association support for `.md` and `.markdown` files.
+- Native menus and keyboard shortcuts.
 
-## Installation
-
-### Prerequisites
+## Prerequisites
 
 - Node.js 18+
 - npm 9+
 
-### Development
+## Development
 
 ```bash
-# Install dependencies
 npm install
-
-# Run in development mode
 npm start
-
-# Build for production
-npm run build
-
-# Run unit tests
-npm test
 ```
 
-### Building Installers
+`npm start` builds Angular and Electron once, then starts Angular watch mode and the Electron shell.
+
+Useful commands:
 
 ```bash
-# Windows installer (.exe)
-npm run dist:win
-
-# macOS installer (.dmg)
-npm run dist:mac
-
-# Both platforms
-npm run dist:all
+npm test          # Run Jest unit tests
+npm run build    # Build Angular and Electron
+npm run check    # Run tests, then production build
+npm run dist     # Build app installers
 ```
 
 ## Keyboard Shortcuts
 
 | Action | Windows | macOS |
-|--------|---------|-------|
+| --- | --- | --- |
 | Open File | Ctrl+O | Cmd+O |
 | Save | Ctrl+S | Cmd+S |
 | Save As | Ctrl+Shift+S | Cmd+Shift+S |
@@ -72,29 +59,32 @@ npm run dist:all
 
 ## Project Structure
 
-```
+```text
 md-viewer/
-├── src/
-│   ├── electron/          # Electron main process
-│   │   ├── main.ts        # App entry, window management
-│   │   ├── menu.ts        # Native menu configuration
-│   │   └── preload.ts     # IPC bridge to renderer
-│   ├── app/               # Angular application
-│   │   ├── components/    # UI components
-│   │   └── services/      # Business logic
-│   └── assets/            # Static assets
-├── assets/                # Build assets (icons)
-└── package.json
+  src/
+    electron/      Electron main process, menu, preload bridge, updater
+    app/
+      components/  Angular UI components
+      services/    Application state, parsing, settings, feedback logic
+    styles.css     Theme tokens and global styling
+  docs/            Development specs and implementation plans
 ```
+
+## Quality Notes
+
+- Keep persisted data validation in small pure helpers so it is easy to test.
+- Keep Electron IPC behind `ElectronService` and the preload bridge.
+- Add focused Jest tests for critical behavior before changing implementation.
+- Use `npm run check` before packaging or handing off changes.
 
 ## Technologies
 
-- **Electron** - Cross-platform desktop framework
-- **Angular 17** - Frontend framework
-- **TypeScript** - Type-safe JavaScript
-- **Marked** - Markdown parser
-- **Highlight.js** - Syntax highlighting
-- **electron-builder** - Installer creation
+- Electron
+- Angular 17
+- TypeScript
+- Marked
+- Highlight.js
+- electron-builder
 
 ## License
 

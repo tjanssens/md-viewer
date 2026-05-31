@@ -377,6 +377,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.hasUnsavedChanges = false;
       this.currentFilePath = await this.electronService.getCurrentFilePath();
       this.feedbackService.setCurrentFile(this.currentFilePath);
+      this.currentFileService.setCurrentFile(this.currentFilePath);
     }
   }
 
