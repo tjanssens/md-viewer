@@ -1,23 +1,13 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import {
+  AppSettings,
+  DEFAULT_SETTINGS,
+  normalizeSettings,
+  Theme
+} from './app-settings.util';
 
-export type Theme = 'auto' | 'light' | 'dark';
-
-export interface AppSettings {
-  fontFamily: string;
-  fontSize: number;
-  editorFontFamily: string;
-  editorFontSize: number;
-  theme: Theme;
-}
-
-const DEFAULT_SETTINGS: AppSettings = {
-  fontFamily: 'Georgia',
-  fontSize: 16,
-  editorFontFamily: 'Consolas',
-  editorFontSize: 14,
-  theme: 'auto'
-};
+export type { AppSettings, Theme };
 
 @Injectable({
   providedIn: 'root'
@@ -30,7 +20,7 @@ export class SettingsService {
     try {
       const stored = localStorage.getItem('md-viewer-settings');
       if (stored) {
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+        return normalizeSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(stored) });
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -51,7 +41,7 @@ export class SettingsService {
   }
 
   updateSettings(partial: Partial<AppSettings>): void {
-    const newSettings = { ...this.settings.value, ...partial };
+    const newSettings = normalizeSettings({ ...this.settings.value, ...partial });
     this.settings.next(newSettings);
     this.saveSettings(newSettings);
   }

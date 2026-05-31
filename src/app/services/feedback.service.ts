@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { normalizeFeedbackItems } from './feedback-storage.util';
 
 export type FeedbackStatus = 'open' | 'processed' | 'orphaned';
 
@@ -73,7 +74,7 @@ export class FeedbackService {
     if (!this.currentFilePath) return [];
     try {
       const stored = localStorage.getItem(STORAGE_PREFIX + this.currentFilePath);
-      return stored ? JSON.parse(stored) : [];
+      return stored ? normalizeFeedbackItems(JSON.parse(stored)) : [];
     } catch (error) {
       console.error('Error loading feedback:', error);
       return [];
