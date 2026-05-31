@@ -91,4 +91,26 @@ describe('FeedbackService', () => {
     service2.setCurrentFile('/test.md');
     expect(service2.getItems().length).toBe(1);
   });
+
+  it('negeert misvormde opgeslagen feedback bij setCurrentFile', () => {
+    localStorage.setItem(
+      'feedback:/corrupt.md',
+      JSON.stringify([{ id: 'x', selectedText: 'ok', feedback: 'ok' }]) // mist createdAt
+    );
+    service.setCurrentFile('/corrupt.md');
+    expect(service.getItems()).toEqual([]);
+  });
+
+  it('normaliseert op het schrijf-pad zodat ongeldige items niet persisteren', () => {
+    service.setCurrentFile('/test.md');
+    const valid = service.add(sampleInput);
+    service.replaceAll([
+      valid,
+      { id: 'bad', selectedText: '', feedback: '', status: 'closed', createdAt: '' } as unknown as FeedbackItem
+    ]);
+    expect(service.getItems().length).toBe(1);
+    expect(service.getItems()[0].id).toBe(valid.id);
+    const stored = JSON.parse(localStorage.getItem('feedback:/test.md') || '[]');
+    expect(stored.length).toBe(1);
+  });
 });

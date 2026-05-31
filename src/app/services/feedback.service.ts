@@ -82,10 +82,11 @@ export class FeedbackService {
   }
 
   private persist(items: FeedbackItem[]): void {
-    this.itemsSubject.next(items);
+    const normalized = normalizeFeedbackItems(items);
+    this.itemsSubject.next(normalized);
     if (!this.currentFilePath) return;
     try {
-      localStorage.setItem(STORAGE_PREFIX + this.currentFilePath, JSON.stringify(items));
+      localStorage.setItem(STORAGE_PREFIX + this.currentFilePath, JSON.stringify(normalized));
     } catch (error) {
       console.error('Error saving feedback:', error);
     }
