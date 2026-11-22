@@ -56,7 +56,7 @@
     "fileAssociations": [
       {
         "ext": ["md", "markdown"],
-        "name": "Markdown Document",
+        "name": "MDViewer.Markdown",
         "description": "Markdown text file",
         "role": "Editor",
         "mimeType": "text/markdown"
