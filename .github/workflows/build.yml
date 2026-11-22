@@ -7,18 +7,46 @@ on:
       - master
     tags:
       - 'v*'
+  pull_request:
   workflow_dispatch:
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev librsvg2-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build:web
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
+
   prepare:
     runs-on: ubuntu-latest
     outputs:
       should_build: ${{ steps.check.outputs.should_build }}
-      tag_name: ${{ steps.check.outputs.tag_name }}
       release_needed: ${{ steps.check.outputs.release_needed }}
+      tag_name: ${{ steps.check.outputs.tag_name }}
+      version: ${{ steps.check.outputs.version }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -26,106 +54,127 @@ jobs:
         id: check
         shell: bash
         run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+          VERSION="$(node -p "require('./package.json').version")"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # Build installers to try out, but never publish from a PR.
+            echo "tag_name=v$VERSION" >> $GITHUB_OUTPUT
+            echo "should_build=true" >> $GITHUB_OUTPUT
+            echo "release_needed=false" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
             TAG="${GITHUB_REF#refs/tags/}"
             echo "tag_name=$TAG" >> $GITHUB_OUTPUT
             echo "should_build=true" >> $GITHUB_OUTPUT
             echo "release_needed=true" >> $GITHUB_OUTPUT
-            echo "Tag push: building $TAG"
           else
-            VERSION="v$(node -p "require('./package.json').version")"
-            echo "tag_name=$VERSION" >> $GITHUB_OUTPUT
-            if git rev-parse "refs/tags/$VERSION" >/dev/null 2>&1; then
-              echo "Tag $VERSION already exists, skipping build"
+            TAG="v$VERSION"
+            echo "tag_name=$TAG" >> $GITHUB_OUTPUT
+            if git rev-parse "refs/tags/$TAG" >/dev/null 2>&1; then
+              echo "Tag $TAG already exists, skipping build"
               echo "should_build=false" >> $GITHUB_OUTPUT
               echo "release_needed=false" >> $GITHUB_OUTPUT
             else
-              echo "Building new release $VERSION"
               echo "should_build=true" >> $GITHUB_OUTPUT
               echo "release_needed=true" >> $GITHUB_OUTPUT
             fi
           fi
 
   build:
-    needs: prepare
+    needs: [test, prepare]
     if: needs.prepare.outputs.should_build == 'true'
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
             platform: win
+            bundles: nsis
           - os: macos-latest
             platform: mac
+            bundles: dmg
 
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
+      - uses: dtolnay/rust-toolchain@stable
 
-      - name: Build application
-        run: npm run build
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
 
-      - name: Build installer (Windows)
+      - run: npm ci
+
+      - name: Build app
+        run: npx tauri build --bundles ${{ matrix.bundles }}
+
+      - name: Collect installer (Windows)
         if: matrix.platform == 'win'
-        run: npx electron-builder --win --publish never
+        shell: bash
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          mkdir -p release
+          NAME="MD-Viewer-Setup-$VERSION-x64.exe"
+          cp src-tauri/target/release/bundle/nsis/*-setup.exe "release/$NAME"
+          # latest.yml lets installs of the old Electron version find this release.
+          SHA=$(openssl dgst -sha512 -binary "release/$NAME" | base64 -w0)
+          SIZE=$(stat -c%s "release/$NAME")
+          {
+            echo "version: $VERSION"
+            echo "files:"
+            echo "  - url: $NAME"
+            echo "    sha512: $SHA"
+            echo "    size: $SIZE"
+            echo "path: $NAME"
+            echo "sha512: $SHA"
+            echo "releaseDate: '$(date -u +%Y-%m-%dT%H:%M:%S.000Z)'"
+          } > release/latest.yml
+          ls -la release
 
-      - name: Build installer (macOS)
+      - name: Collect installer (macOS)
         if: matrix.platform == 'mac'
-        run: npx electron-builder --mac --publish never
+        shell: bash
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          mkdir -p release
+          cp src-tauri/target/release/bundle/dmg/*.dmg "release/MD-Viewer-$VERSION-arm64.dmg"
+          ls -la release
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.platform }}
-          path: |
-            release/*.exe
-            release/*.dmg
-            release/*.blockmap
-            release/*-mac.yml
-            release/latest*.yml
-          if-no-files-found: warn
+          path: release/*
+          if-no-files-found: error
 
   release:
     needs: [prepare, build]
     if: needs.prepare.outputs.release_needed == 'true'
     runs-on: ubuntu-latest
-
     permissions:
       contents: write
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: release-win
           path: release
 
-      - name: Download macOS artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: release-mac
           path: release
 
-      - name: List release files
-        run: ls -la release/
+      - run: ls -la release/
 
       - name: Create tag (branch push only)
         if: github.ref_type != 'tag'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -133,15 +182,11 @@ jobs:
           git push origin ${{ needs.prepare.outputs.tag_name }}
 
       - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.prepare.outputs.tag_name }}
           name: ${{ needs.prepare.outputs.tag_name }}
           generate_release_notes: true
-          files: |
-            release/*.exe
-            release/*.dmg
-            release/*.blockmap
-            release/latest.yml
+          files: release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

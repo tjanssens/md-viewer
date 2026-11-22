@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MD Viewer</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="main.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="toolbar">
+      <div class="toolbar-group">
+        <button class="btn" data-action="open" title="Open file (Ctrl+O)"><span class="icon">📂</span>Open</button>
+        <button class="btn needs-doc" data-action="save" title="Save file (Ctrl+S)"><span class="icon">💾</span>Save</button>
+        <button class="btn needs-doc" data-action="save-as" title="Save as (Ctrl+Shift+S)"><span class="icon">📄</span>Save As</button>
+        <button class="btn needs-doc" data-action="print" title="Print (Ctrl+P)"><span class="icon">🖨️</span>Print</button>
+        <div class="separator"></div>
+        <button class="btn" data-action="toggle-edit" id="edit-btn" title="Toggle edit mode (Ctrl+E)"><span class="icon">✏️</span><span id="edit-label">Edit</span></button>
+      </div>
+      <div class="toolbar-group">
+        <label class="select-label">Font:
+          <select id="font-select">
+            <option>Arial</option><option>Calibri</option><option>Cambria</option><option>Comic Sans MS</option>
+            <option>Consolas</option><option>Courier New</option><option>Georgia</option><option>Helvetica</option>
+            <option>Impact</option><option>Lucida Console</option><option>Palatino Linotype</option><option>Segoe UI</option>
+            <option>Tahoma</option><option>Times New Roman</option><option>Trebuchet MS</option><option>Verdana</option>
+            <option>San Francisco</option><option>Menlo</option><option>Monaco</option><option>Avenir</option><option>Helvetica Neue</option>
+          </select>
+        </label>
+        <label class="select-label">Size:
+          <select id="size-select">
+            <option value="12">12px</option><option value="14">14px</option><option value="16">16px</option>
+            <option value="18">18px</option><option value="20">20px</option><option value="22">22px</option>
+            <option value="24">24px</option><option value="28">28px</option><option value="32">32px</option>
+          </select>
+        </label>
+        <button class="toggle-btn view-only" data-action="toggle-outline" id="outline-btn" title="Outline">📑</button>
+        <button class="toggle-btn view-only" data-action="toggle-feedback" id="feedback-btn" title="Feedback panel">💬</button>
+        <div class="theme-selector">
+          <button class="toggle-btn" id="theme-btn" title="Theme">🌓</button>
+          <div class="theme-menu">
+            <button data-theme="auto">Auto</button>
+            <button data-theme="light">Light</button>
+            <button data-theme="dark">Dark</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="main" id="main">
+      <aside class="outline panel" id="outline" hidden>
+        <header class="panel-header"><h3>Outline</h3><button class="close-btn" data-action="toggle-outline" title="Close">✕</button></header>
+        <div class="outline-list" id="outline-list"></div>
+      </aside>
+      <section class="editor-pane" id="editor-pane"></section>
+      <div class="split-divider" id="divider"><div class="divider-handle"></div></div>
+      <section class="viewer" id="viewer"><article class="markdown-body" id="doc"></article></section>
+      <aside class="sidebar panel" id="sidebar" hidden></aside>
+
+      <div class="welcome" id="welcome">
+        <div class="welcome-content">
+          <h1>MD Viewer</h1>
+          <p>Open a Markdown file to get started</p>
+          <button class="welcome-btn" data-action="open"><span class="icon">📂</span>Open File</button>
+          <p class="hint">Or drag and drop a .md file here</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <button class="selection-button" id="selection-button" hidden>💬 Add feedback</button>
+  <div class="popover" id="popover" hidden>
+    <div class="popover-snippet" id="popover-snippet"></div>
+    <textarea id="popover-text" rows="4" placeholder="Write your feedback… (Enter to save, Shift+Enter for new line)"></textarea>
+    <div class="popover-actions">
+      <button class="btn-cancel" id="popover-cancel">Cancel</button>
+      <button class="btn-save" id="popover-save">Save <span class="kbd">Enter</span></button>
+    </div>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+  <div class="overlay" id="conflict" hidden>
+    <div class="modal">
+      <h2>File changed on disk</h2>
+      <p>You have unsaved changes. The file on disk has been changed by another process.</p>
+      <p>What do you want to do?</p>
+      <div class="modal-actions">
+        <button class="btn-danger" id="conflict-disk">Load file from disk (discard my changes)</button>
+        <button class="btn-primary" id="conflict-keep">Keep my version</button>
+      </div>
+    </div>
+  </div>
+  <div class="update-panel" id="update-panel" hidden></div>
+</body>
+</html>
