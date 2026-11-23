@@ -1,0 +1,97 @@
+name: Feedback auto-merge
+
+# Merges a pull request that feedback.yml opened, once "Build and Release"
+# passed on it, then raises the patch version and starts a release build.
+#
+# Guards (all must hold, otherwise nothing is merged):
+#   - the branch is feedback/issue-<n> in this repository (no forks)
+#   - issue <n> was written by tjanssens
+#   - the checks ran on the PR's current head commit
+#   - the PR does not touch anything under .github/
+
+on:
+  workflow_run:
+    workflows: ['Build and Release']
+    types: [completed]
+
+concurrency:
+  group: feedback-merge
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      startsWith(github.event.workflow_run.head_branch, 'feedback/issue-')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      BRANCH: ${{ github.event.workflow_run.head_branch }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Check the pull request
+        id: pr
+        shell: bash
+        run: |
+          set -euo pipefail
+          ISSUE="${BRANCH#feedback/issue-}"
+          [[ "$ISSUE" =~ ^[0-9]+$ ]] || { echo "Unexpected branch $BRANCH"; exit 1; }
+
+          AUTHOR=$(gh issue view "$ISSUE" --json author -q .author.login)
+          [[ "$AUTHOR" == "tjanssens" ]] || { echo "Issue #$ISSUE is by $AUTHOR, not merging"; exit 1; }
+
+          PR=$(gh pr list --head "$BRANCH" --base main --state open --json number -q '.[0].number')
+          [[ -n "$PR" ]] || { echo "No open PR for $BRANCH"; exit 0; }
+
+          PR_SHA=$(gh pr view "$PR" --json headRefOid -q .headRefOid)
+          [[ "$PR_SHA" == "$HEAD_SHA" ]] || { echo "PR moved on since the checks ran; waiting for the next run"; exit 0; }
+
+          if gh pr diff "$PR" --name-only | grep -q '^\.github/'; then
+            gh pr comment "$PR" --body "Not merged automatically: this PR changes files under .github/. Please review it yourself."
+            exit 1
+          fi
+
+          echo "number=$PR" >> "$GITHUB_OUTPUT"
+
+      - name: Merge
+        if: steps.pr.outputs.number != ''
+        run: gh pr merge "${{ steps.pr.outputs.number }}" --squash --delete-branch --match-head-commit "$HEAD_SHA"
+
+      - uses: actions/checkout@v4
+        if: steps.pr.outputs.number != ''
+        with:
+          ref: main
+
+      - name: Raise the patch version
+        if: steps.pr.outputs.number != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          git pull --ff-only origin main
+          VERSION=$(node scripts/bump-patch.mjs)
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -am "Release v$VERSION"
+          git push origin HEAD:main
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      # Pushes made with GITHUB_TOKEN do not start other workflows, so start
+      # the release build explicitly.
+      - name: Start the release build
+        if: steps.pr.outputs.number != ''
+        run: gh workflow run build.yml --ref main
+
+      - name: Tell the issue
+        if: steps.pr.outputs.number != ''
+        shell: bash
+        run: |
+          ISSUE="${BRANCH#feedback/issue-}"
+          gh issue comment "$ISSUE" --body "Merged into main as v$VERSION. The release build has started; the app will offer the update once it is published."

@@ -37,6 +37,7 @@
         </label>
         <button class="toggle-btn view-only" data-action="toggle-outline" id="outline-btn" title="Outline">📑</button>
         <button class="toggle-btn view-only" data-action="toggle-feedback" id="feedback-btn" title="Feedback panel">💬</button>
+        <button class="toggle-btn" data-action="send-feedback" title="Send feedback about MD Viewer">📣</button>
         <div class="theme-selector">
           <button class="toggle-btn" id="theme-btn" title="Theme">🌓</button>
           <div class="theme-menu">
@@ -87,6 +88,28 @@
       <div class="modal-actions">
         <button class="btn-danger" id="conflict-disk">Load file from disk (discard my changes)</button>
         <button class="btn-primary" id="conflict-keep">Keep my version</button>
+      </div>
+    </div>
+  </div>
+  <div class="overlay" id="report" hidden>
+    <div class="modal report-modal" role="dialog" aria-labelledby="report-heading">
+      <h2 id="report-heading">Send feedback</h2>
+      <p class="report-hint">Your feedback becomes an issue on GitHub. It opens in your browser, where you click "Create".</p>
+      <label class="report-field">Type
+        <select id="report-kind">
+          <option value="idea">Idea or improvement</option>
+          <option value="bug">Bug</option>
+        </select>
+      </label>
+      <label class="report-field">Title (optional)
+        <input id="report-title" type="text" maxlength="120" placeholder="Short summary">
+      </label>
+      <label class="report-field">Feedback
+        <textarea id="report-text" rows="7" placeholder="What should change, or what went wrong?"></textarea>
+      </label>
+      <div class="report-actions">
+        <button class="btn-secondary" id="report-cancel">Cancel</button>
+        <button class="btn-primary" id="report-send">Open on GitHub <span class="kbd">Ctrl+Enter</span></button>
       </div>
     </div>
   </div>
