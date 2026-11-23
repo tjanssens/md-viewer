@@ -58,25 +58,17 @@ npm run dist       # build installers for the current OS
 
 The 📣 button (or **Help > Send Feedback…**) opens a short form. Sending it opens a
 pre-filled "new issue" page on GitHub in your browser; you click **Create** there.
-The app holds no GitHub token: the issue is posted with your own account.
+The app holds no GitHub token: the issue is posted with your own account. Issues from
+the app carry the hidden marker `<!-- md-viewer-feedback -->`.
 
-Two workflows then take over:
+A scheduled Claude task in the project picks these issues up: it judges each one and
+either comments why it will not do it (label `feedback-declined`), or implements it,
+raises the patch version with `scripts/bump-patch.mjs`, opens a pull request and merges
+it into `main` once "Build and Release" passes, which publishes a new release.
 
-1. `.github/workflows/feedback.yml` runs Claude (anthropics/claude-code-action) on the
-   issue. Claude judges it and either comments why it will not do it (label
-   `feedback-declined`), or implements it on `feedback/issue-<n>`, runs `npm run check`
-   and opens a pull request.
-2. `.github/workflows/feedback-merge.yml` waits for "Build and Release" to pass on that
-   pull request, merges it into `main`, raises the patch version and starts the release
-   build, so the app offers the update.
-
-Only issues written and triggered by `tjanssens` are processed, and a pull request that
-touches `.github/` is never merged automatically. To retry an issue, or to send one you
-wrote by hand, add the `feedback` label.
-
-Setup (once): add a repository secret `ANTHROPIC_API_KEY` (or `CLAUDE_CODE_OAUTH_TOKEN`
-from `claude setup-token`), and make sure the Claude GitHub App is installed on the
-repository.
+Only issues written by `tjanssens` are processed, and a change under `.github/` is never
+merged automatically. To have an issue you wrote by hand picked up, add the `feedback`
+label.
 
 ## Keyboard shortcuts
 
