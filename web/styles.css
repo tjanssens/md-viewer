@@ -329,6 +329,17 @@ body.edit .view-only, body.edit .outline, body.edit .sidebar, body.edit .welcome
 .report-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .report-actions button { padding: 8px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; border: 1px solid var(--color-border); }
 .report-actions button:disabled { opacity: 0.5; cursor: default; }
+.about-modal { width: 480px; }
+.about-tagline { color: var(--color-text-muted); }
+.about-info { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 12px 0; font-size: 14px; }
+.about-info dt { color: var(--color-text-muted); }
+.about-info dd { margin: 0; }
+.about-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.about-buttons button { padding: 8px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; border: 1px solid var(--color-border); }
+.modal h3 { margin: 20px 0 8px; font-size: 14px; color: var(--color-heading); }
+.about-shortcuts { width: 100%; border-collapse: collapse; font-size: 13px; }
+.about-shortcuts td { padding: 3px 0; }
+.about-shortcuts td:last-child { text-align: right; }
 .btn-link { background: none; border: none !important; color: var(--color-link); }
 
 .update-panel {

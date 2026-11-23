@@ -452,7 +452,7 @@ fn build_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
     let mut menu = MenuBuilder::new(app);
     if cfg!(target_os = "macos") {
         let app_menu = SubmenuBuilder::new(app, "MD Viewer")
-            .about(None)
+            .item(&item("about_app", "About MD Viewer", None)?)
             .separator()
             .services()
             .separator()
@@ -473,9 +473,6 @@ fn on_menu(app: &AppHandle, id: &str) {
         "zoom_out" => set_zoom(app, |z| z - 0.1),
         "zoom_reset" => set_zoom(app, |_| 1.0),
         "check_updates" => check_updates(app.clone()),
-        "about" => {
-            let _ = app.opener().open_url("https://github.com/tjanssens/md-viewer", None::<&str>);
-        }
         #[cfg(debug_assertions)]
         "devtools" => {
             if let Some(w) = main_window(app) {
