@@ -5,6 +5,7 @@ import { FeedbackStore } from './feedback/store';
 import { FeedbackSidebar } from './feedback/sidebar';
 import { renderOutline } from './outline';
 import { UpdatePanel } from './update';
+import { ReportDialog } from './report';
 import { Viewer, FeedbackRequest, dirname } from './viewer';
 import type { Editor } from './editor';
 import type { Block } from './blocks';
@@ -82,12 +83,12 @@ function updateChrome(): void {
   $('feedback-btn').classList.toggle('active', sidebarOpen);
 }
 
-function toast(text: string): void {
+function toast(text: string, ms = 2500): void {
   const el = $('toast');
   el.textContent = text;
   el.hidden = false;
   if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (el.hidden = true), 2500);
+  toastTimer = setTimeout(() => (el.hidden = true), ms);
 }
 
 function refreshOutline(): void {
@@ -340,6 +341,8 @@ viewer.onSelectFeedback = id => {
 };
 viewer.onOpenPath = p => void openPath(p);
 
+const report = new ReportDialog(api.appVersion, api.openUrl, msg => toast(msg, 6000));
+
 // ---------------------------------------------------------------- toolbar
 
 const actions: Record<string, () => void> = {
@@ -349,7 +352,8 @@ const actions: Record<string, () => void> = {
   print,
   'toggle-edit': () => void toggleEdit(),
   'toggle-outline': () => toggleOutline(),
-  'toggle-feedback': () => toggleSidebar()
+  'toggle-feedback': () => toggleSidebar(),
+  'send-feedback': () => report.show()
 };
 
 document.addEventListener('click', e => {
@@ -374,7 +378,7 @@ async function boot(): Promise<void> {
   // Listeners first: the Rust side only forwards OS "open file" events after init.
   await Promise.all([
     api.on<string>('menu', id => {
-      const map: Record<string, string> = { open: 'open', save: 'save', save_as: 'save-as', print: 'print', toggle_edit: 'toggle-edit' };
+      const map: Record<string, string> = { open: 'open', save: 'save', save_as: 'save-as', print: 'print', toggle_edit: 'toggle-edit', send_feedback: 'send-feedback' };
       actions[map[id]]?.();
     }),
     api.on<string>('open-path', p => void openPath(p)),

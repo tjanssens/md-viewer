@@ -35,6 +35,7 @@ export const api = {
   feedbackSave: (path: string, items: unknown) => invoke<void>('feedback_save', { path, items }),
   print: () => invoke<void>('print'),
   openUrl: (url: string) => invoke<void>('open_url', { url }),
+  appVersion: () => invoke<string>('app_version'),
   checkUpdates: () => invoke<void>('check_updates'),
   installUpdate: () => invoke<void>('install_update'),
   updateLogs: () => invoke<string[]>('update_logs'),

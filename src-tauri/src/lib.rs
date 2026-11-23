@@ -443,6 +443,7 @@ fn build_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
     let window = SubmenuBuilder::new(app, "Window").minimize().maximize().build()?;
 
     let help = SubmenuBuilder::new(app, "Help")
+        .item(&item("send_feedback", "Send Feedback…", None)?)
         .item(&item("check_updates", "Check for Updates…", None)?)
         .separator()
         .item(&item("about", "About MD Viewer", None)?)

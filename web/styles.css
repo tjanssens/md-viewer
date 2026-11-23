@@ -318,6 +318,17 @@ body.edit .view-only, body.edit .outline, body.edit .sidebar, body.edit .welcome
 .btn-danger { background: var(--color-danger); color: #fff; border-color: var(--color-danger) !important; }
 .btn-primary { background: var(--color-primary); color: #fff; border-color: var(--color-primary) !important; }
 .btn-secondary { background: var(--color-bg); color: var(--color-text); }
+.report-modal { width: 520px; }
+.report-hint { color: var(--color-text-muted); font-size: 13px !important; }
+.report-field { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; font-size: 13px; color: var(--color-text-muted); }
+.report-field input, .report-field select, .report-field textarea {
+  font: inherit; font-size: 14px; padding: 6px 8px; color: var(--color-text); background: var(--color-bg);
+  border: 1px solid var(--color-border-strong); border-radius: 4px;
+}
+.report-field textarea { resize: vertical; min-height: 100px; }
+.report-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.report-actions button { padding: 8px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; border: 1px solid var(--color-border); }
+.report-actions button:disabled { opacity: 0.5; cursor: default; }
 .btn-link { background: none; border: none !important; color: var(--color-link); }
 
 .update-panel {
