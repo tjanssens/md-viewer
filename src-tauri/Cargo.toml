@@ -1,6 +1,6 @@
 [package]
 name = "md-viewer"
-version = "2.0.2"
+version = "2.0.3"
 description = "Fast Markdown viewer and editor"
 edition = "2021"
 license = "MIT"

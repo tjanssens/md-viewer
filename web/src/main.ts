@@ -6,6 +6,7 @@ import { FeedbackSidebar } from './feedback/sidebar';
 import { renderOutline } from './outline';
 import { UpdatePanel } from './update';
 import { ReportDialog } from './report';
+import { AboutDialog } from './about';
 import { Viewer, FeedbackRequest, dirname } from './viewer';
 import type { Editor } from './editor';
 import type { Block } from './blocks';
@@ -342,6 +343,13 @@ viewer.onSelectFeedback = id => {
 viewer.onOpenPath = p => void openPath(p);
 
 const report = new ReportDialog(api.appVersion, api.openUrl, msg => toast(msg, 6000));
+const about = new AboutDialog($('about'), {
+  version: api.appVersion,
+  openUrl: api.openUrl,
+  checkUpdates: api.checkUpdates,
+  sendFeedback: () => report.show(),
+  notify: msg => toast(msg, 4000)
+});
 
 // ---------------------------------------------------------------- toolbar
 
@@ -353,7 +361,8 @@ const actions: Record<string, () => void> = {
   'toggle-edit': () => void toggleEdit(),
   'toggle-outline': () => toggleOutline(),
   'toggle-feedback': () => toggleSidebar(),
-  'send-feedback': () => report.show()
+  'send-feedback': () => report.show(),
+  about: () => void about.show()
 };
 
 document.addEventListener('click', e => {
@@ -378,7 +387,7 @@ async function boot(): Promise<void> {
   // Listeners first: the Rust side only forwards OS "open file" events after init.
   await Promise.all([
     api.on<string>('menu', id => {
-      const map: Record<string, string> = { open: 'open', save: 'save', save_as: 'save-as', print: 'print', toggle_edit: 'toggle-edit', send_feedback: 'send-feedback' };
+      const map: Record<string, string> = { open: 'open', save: 'save', save_as: 'save-as', print: 'print', toggle_edit: 'toggle-edit', send_feedback: 'send-feedback', about: 'about', about_app: 'about' };
       actions[map[id]]?.();
     }),
     api.on<string>('open-path', p => void openPath(p)),
